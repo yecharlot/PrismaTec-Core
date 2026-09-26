@@ -181,3 +181,6 @@ Descentralización real detrás de la misma interfaz; narrativa industrial hones
 
 ### Guía
 PRISMATEC_TRANSPORT=libp2p; go test ./network/ -run LibP2P -v
+
+## 2026-09-26 — Evidence pack for reviewers
+Ran go test ./... green at 976201b; wrote docs/EVIDENCE_FOR_REVIEWERS.md for ChatGPT/auditors.
