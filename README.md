@@ -21,8 +21,9 @@ A **core layer**: identity, state, memory, capabilities, policy, execution, netw
 | Control Studio `/studio/` | ✅ |
 | Policy engine + audit + optional API token | ✅ |
 | Execution (builtin + WASM) / inference interfaces | ✅ |
-| Network fabric + replicate / recover (tests) | ✅ |
-| E2E checklist `tests/e2e` | ✅ |
+| Network TCP + libp2p Transport | ✅ |
+| Replicate / recover + epoch fencing | ✅ |
+| E2E including process SIGKILL continuity | ✅ |
 
 ---
 
@@ -47,6 +48,8 @@ go test ./tests/e2e/ -v
 ```
 
 **Full usage guide:** [docs/USAGE.md](docs/USAGE.md)  
+**Honest status (for reviewers/ChatGPT):** [docs/STATE_OF_THE_UNION.md](docs/STATE_OF_THE_UNION.md)  
+**Test evidence:** [docs/EVIDENCE_FOR_REVIEWERS.md](docs/EVIDENCE_FOR_REVIEWERS.md)  
 **Security:** [docs/SECURITY.md](docs/SECURITY.md)  
 **Handoff for contributors/AI:** [docs/HANDOFF.md](docs/HANDOFF.md)
 
@@ -69,7 +72,7 @@ IDENTITY + STATE + MEMORY + CAPABILITY + POLICY
 |----------|---------|
 | **RootCID** | Content / definition |
 | **NodeID** | Host (Ed25519, persisted) |
-| **PeerID** | Transport (future libp2p adapter) |
+| **PeerID** | Transport identity (TCP derived / libp2p host ID) |
 
 ---
 
