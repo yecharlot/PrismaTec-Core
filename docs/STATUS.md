@@ -1,6 +1,6 @@
 # STATUS — Qué tenemos vs propósito final
 
-**Actualizado:** 2026-09-26 (cierre Fase 7 — Policy)
+**Actualizado:** 2026-09-26 (cierre Fases 8–12)
 
 ## Propósito final (manifiesto)
 

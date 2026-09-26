@@ -1,6 +1,7 @@
 package aip
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,6 +13,8 @@ import (
 	"github.com/yecharlot/PrismaTec-Core/core"
 	"github.com/yecharlot/PrismaTec-Core/core/organism"
 	"github.com/yecharlot/PrismaTec-Core/core/policy"
+	"github.com/yecharlot/PrismaTec-Core/runtime/execution"
+	"github.com/yecharlot/PrismaTec-Core/runtime/inference"
 	"github.com/yecharlot/PrismaTec-Core/core/pulse"
 )
 
@@ -311,6 +314,34 @@ func (s *Server) execCommand(cmd Command) CommandResult {
 		}
 		v := viewOf(o)
 		return CommandResult{AIP: Version, OK: true, Organism: &v}
+
+	case "execute":
+		id := str("id")
+		entry := str("entry")
+		if entry == "" {
+			entry = "ping"
+		}
+		o, err := mgr.Get(id)
+		if err != nil {
+			return CommandResult{AIP: Version, OK: false, Error: err.Error()}
+		}
+		eng := execution.BuiltinEngine{}
+		res, err := eng.Execute(context.Background(), execution.Request{OrganismID: o.ID, Entry: entry, Input: []byte(str("input"))})
+		if err != nil {
+			return CommandResult{AIP: Version, OK: false, Error: err.Error()}
+		}
+		v := viewOf(o)
+		_ = res
+		return CommandResult{AIP: Version, OK: true, Organism: &v, Error: string(res.Output)}
+
+	case "infer":
+		prompt := str("prompt")
+		p := inference.EchoProvider{}
+		res, err := p.Infer(context.Background(), inference.Request{Prompt: prompt, Model: str("model")})
+		if err != nil {
+			return CommandResult{AIP: Version, OK: false, Error: err.Error()}
+		}
+		return CommandResult{AIP: Version, OK: true, Error: res.Text}
 
 	case "policy.check":
 		id := str("id")

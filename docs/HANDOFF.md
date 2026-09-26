@@ -1,6 +1,6 @@
 # HANDOFF — PrismaTec Core
 
-**Última actualización:** 2026-09-26 (Fase 7 Policy engine completada)  
+**Última actualización:** 2026-09-26 (Fases 8–12 Execution/Inference/Network/Replication/Recovery)  
 **Repositorio local:** `/home/workdir/artifacts/PrismaTec-Core`  
 **Módulo Go:** `github.com/yecharlot/PrismaTec-Core`  
 **Repo objetivo GitHub:** `github.com/yecharlot/PrismaTec-Core` (aún no publicado necesariamente)
@@ -75,7 +75,8 @@ Leer primero:
 | 5 | AIP v1 | ✅ | `docs/PHASE5_AIP.md` |
 | 6 | Alset-JS mínimo / Demo 1 panel | ✅ | `docs/PHASE6_ALSET_JS_DEMO.md` |
 | 7 | Policy engine | ✅ | `docs/PHASE7_POLICY.md` |
-| 8 | Execution WASM/Lisp | ⏳ | `docs/MIGRATION.md` |
+| 8–12 | Execution, Inference, Network, Replication, Recovery | ✅ | `docs/PHASES_8_TO_12.md` |
+| 13 | Studio | ⏳ | `docs/MIGRATION.md` |
 
 ### Estructura del repo
 

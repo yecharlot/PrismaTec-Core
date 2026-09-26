@@ -92,3 +92,19 @@ Authorization real antes de execution/network.
 
 ### Guía de acción
 Push a GitHub; siguiente Fase 8 o 10.
+
+
+## 2026-09-26 — Fases 8–12 batch
+
+### Qué se hizo
+- runtime/execution + wasm (wazero) + inference providers
+- network LocalTransport fabric
+- core/replication Replicate + RecoverIfPrimaryDown
+- AIP execute/infer
+- docs PHASES_8_TO_12.md
+
+### Por qué
+Cerrar el camino técnico a Demos 2/3 sin esperar libp2p completo.
+
+### Guía de acción
+Push GitHub; opcional CLI multi-node; Phase 13 Studio.
