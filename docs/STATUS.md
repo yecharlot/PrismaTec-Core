@@ -1,6 +1,6 @@
 # STATUS — Qué tenemos vs propósito final
 
-**Actualizado:** 2026-09-26 (cierre Fase 15 — Security + docs de uso)
+**Actualizado:** 2026-09-26 (cierre multi-nodo TCP + cumplimiento manifiesto)
 
 ## Propósito final (manifiesto)
 

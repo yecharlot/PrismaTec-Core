@@ -150,3 +150,20 @@ Usabilidad y hardening mínimo antes de package comercial.
 
 ### Guía de acción
 Leer docs/USAGE.md; Phase 16 opcional (investor deck).
+
+
+## 2026-09-26 — Cierre manifiesto: multi-nodo TCP
+
+### Qué se hizo
+- network.TCPTransport multi-proceso
+- PeerID distinto de NodeID
+- Node.ReplicateOrganism / RecoverOrganism + Adopt
+- Provenance en replicate/recover
+- TestE2E_MultiNodeTCP (Demo 2+3)
+- CLI/AIP + docs MANIFESTO_COMPLIANCE + USAGE multi-node
+
+### Por qué
+Eliminar cabos sueltos: el manifiesto exige plataforma distribuida demostrable, no solo fabric in-process.
+
+### Guía de acción
+go test ./tests/e2e/ -v ; leer docs/MANIFESTO_COMPLIANCE.md

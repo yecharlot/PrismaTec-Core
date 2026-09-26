@@ -152,3 +152,58 @@ go run ./cmd/prismatec demo e2e
 - No es un framework de chatbots  
 - libp2p multi-host en producción: adapter pendiente (hay fabric local para tests)  
 - Modelos LLM reales: interfaz lista (`inference`), provider `echo` por defecto  
+
+---
+
+## 10. Multi-node (Demo 2 y 3 del manifiesto)
+
+Red **TCP real** entre procesos. PeerID ≠ NodeID.
+
+### Prueba automatizada (recomendada)
+
+```bash
+go test ./tests/e2e/ -run MultiNode -count=1 -v
+```
+
+### Manual (dos terminales)
+
+**Nodo A**
+
+```bash
+export PRISMATEC_DATA_DIR=/tmp/ptc-a
+export PRISMATEC_NODE_NAME=node-A
+export PRISMATEC_NETWORK_ADDR=127.0.0.1:9001
+export PRISMATEC_AIP_ADDR=:8081
+go run ./cmd/prismatec node start
+# anota node_id del banner / node info
+```
+
+**Nodo B**
+
+```bash
+export PRISMATEC_DATA_DIR=/tmp/ptc-b
+export PRISMATEC_NODE_NAME=node-B
+export PRISMATEC_NETWORK_ADDR=127.0.0.1:9002
+export PRISMATEC_AIP_ADDR=:8082
+export PRISMATEC_PEERS="<NODE_A_ID>@127.0.0.1:9001"
+go run ./cmd/prismatec node start
+```
+
+Reinicia A con `PRISMATEC_PEERS="<NODE_B_ID>@127.0.0.1:9002"` si hace falta.
+
+**Replicar (Demo 2)**
+
+```bash
+PRISMATEC_DATA_DIR=/tmp/ptc-a PRISMATEC_NETWORK_ADDR=127.0.0.1:9001 \
+  PRISMATEC_PEERS="<NODE_B_ID>@127.0.0.1:9002" \
+  go run ./cmd/prismatec organism replicate <orgId> <NODE_B_ID>
+```
+
+**Recovery (Demo 3):** detén A, luego:
+
+```bash
+PRISMATEC_DATA_DIR=/tmp/ptc-b PRISMATEC_NETWORK_ADDR=127.0.0.1:9002 \
+  go run ./cmd/prismatec organism recover <orgId>
+```
+
+AIP: actions `replicate` y `recover` en `POST /aip/v1/commands`.

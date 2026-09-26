@@ -13,6 +13,7 @@ import (
 
 	"github.com/yecharlot/PrismaTec-Core/api/aip"
 	"github.com/yecharlot/PrismaTec-Core/core"
+	"github.com/yecharlot/PrismaTec-Core/network"
 	"github.com/yecharlot/PrismaTec-Core/core/organism"
 )
 
@@ -98,6 +99,12 @@ func openNode() *core.Node {
 	cfg.DataDir = dataDir()
 	if name := os.Getenv("PRISMATEC_NODE_NAME"); name != "" {
 		cfg.Name = name
+	}
+	if a := os.Getenv("PRISMATEC_NETWORK_ADDR"); a != "" {
+		cfg.NetworkAddr = a
+	}
+	if peers := os.Getenv("PRISMATEC_PEERS"); peers != "" {
+		cfg.Peers = network.ParsePeersEnv(peers)
 	}
 	node, err := core.NewNode(cfg)
 	if err != nil {
@@ -331,9 +338,56 @@ func printOrganism(o *organism.Organism) {
 	fmt.Printf("Name: %s  Version: %s  Updated: %s\n", o.Name, o.Version, o.UpdatedAt.Format(time.RFC3339))
 }
 
+
+func printMultiNodeDemo() {
+	fmt.Print(`PrismaTec Core — Demo 2 & 3 (multi-node TCP)
+
+Terminal A (primary):
+  export PRISMATEC_DATA_DIR=/tmp/ptc-a
+  export PRISMATEC_NODE_NAME=node-A
+  export PRISMATEC_NETWORK_ADDR=127.0.0.1:9001
+  export PRISMATEC_AIP_ADDR=:8081
+  # After B starts, set PEERS to B's NodeID@127.0.0.1:9002
+  go run ./cmd/prismatec node start
+  # note NodeID from banner / node info
+
+Terminal B (replica):
+  export PRISMATEC_DATA_DIR=/tmp/ptc-b
+  export PRISMATEC_NODE_NAME=node-B
+  export PRISMATEC_NETWORK_ADDR=127.0.0.1:9002
+  export PRISMATEC_AIP_ADDR=:8082
+  export PRISMATEC_PEERS="<NODE_A_ID>@127.0.0.1:9001"
+  go run ./cmd/prismatec node start
+
+Then:
+  # on A — create & start organism, then replicate to B's NodeID
+  PRISMATEC_DATA_DIR=/tmp/ptc-a go run ./cmd/prismatec organism create mover --cap memory.read
+  PRISMATEC_DATA_DIR=/tmp/ptc-a go run ./cmd/prismatec organism start mover
+  PRISMATEC_DATA_DIR=/tmp/ptc-a PRISMATEC_NETWORK_ADDR=127.0.0.1:9001 \
+    PRISMATEC_PEERS="<NODE_B_ID>@127.0.0.1:9002" \
+    go run ./cmd/prismatec organism replicate <orgId> <NODE_B_ID>
+
+Demo 3 — stop A, recover on B:
+  # Ctrl+C on A
+  PRISMATEC_DATA_DIR=/tmp/ptc-b PRISMATEC_NETWORK_ADDR=127.0.0.1:9002 \
+    go run ./cmd/prismatec organism recover <orgId>
+
+Automated proof:
+  go test ./tests/e2e/ -run MultiNode -count=1 -v
+\n`)
+}
+
 func runDemo(args []string) {
-	if len(args) < 1 || args[0] != "e2e" {
-		fmt.Fprintln(os.Stderr, "usage: prismatec demo e2e")
+	if len(args) < 1 {
+		fmt.Fprintln(os.Stderr, "usage: prismatec demo e2e|multinode")
+		os.Exit(1)
+	}
+	if args[0] == "multinode" {
+		printMultiNodeDemo()
+		return
+	}
+	if args[0] != "e2e" {
+		fmt.Fprintln(os.Stderr, "usage: prismatec demo e2e|multinode")
 		os.Exit(1)
 	}
 	// Delegate to documented test path — print instructions + quick local smoke via node APIs

@@ -3,6 +3,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,7 +15,10 @@ import (
 	"github.com/yecharlot/PrismaTec-Core/core/identity"
 	"github.com/yecharlot/PrismaTec-Core/core/organism"
 	"github.com/yecharlot/PrismaTec-Core/core/pulse"
+	"github.com/yecharlot/PrismaTec-Core/core/provenance"
 	"github.com/yecharlot/PrismaTec-Core/core/registry"
+	"github.com/yecharlot/PrismaTec-Core/core/replication"
+	"github.com/yecharlot/PrismaTec-Core/network"
 )
 
 // Status of the node lifecycle.
@@ -29,8 +33,11 @@ const (
 
 // Config for a Core node.
 type Config struct {
-	DataDir string // directory for identity and local state
-	Name    string // human-readable node name
+	DataDir     string // directory for identity and local state
+	Name        string // human-readable node name
+	NetworkAddr string // TCP listen e.g. 127.0.0.1:9001 (empty = no multi-node net)
+	// Peers maps remote NodeID → host:port (or use logical names resolved at runtime)
+	Peers map[string]string
 }
 
 // DefaultConfig returns sensible defaults.
@@ -54,6 +61,10 @@ type Node struct {
 	organisms *organism.Manager
 	pulses    *pulse.Hub
 	audit     *audit.Log
+	prov      *provenance.Log
+	transport network.Transport
+	peerID    string
+	repl      *replication.Service
 	status    Status
 	started   time.Time
 	mu        sync.RWMutex
@@ -102,7 +113,7 @@ func NewNode(cfg Config) (*Node, error) {
 		})
 	})
 
-	return &Node{
+	n := &Node{
 		cfg:       cfg,
 		identity:  id,
 		registry:  reg,
@@ -110,14 +121,29 @@ func NewNode(cfg Config) (*Node, error) {
 		organisms: orgMgr,
 		pulses:    hub,
 		audit:     audit.New(cfg.DataDir),
+		prov:      provenance.New(),
 		status:    StatusStopped,
-	}, nil
+	}
+	n.peerID = network.DerivePeerID(string(id.ID), cfg.Name)
+	return n, nil
 }
 
 // Audit returns the security audit log (Phase 15).
 func (n *Node) Audit() *audit.Log {
 	return n.audit
 }
+
+// PeerID returns the transport identity (distinct from NodeID).
+func (n *Node) PeerID() string { return n.peerID }
+
+// Transport returns the network transport (may be nil if offline-only).
+func (n *Node) Transport() network.Transport { return n.transport }
+
+// Replication returns the replication service (may be nil).
+func (n *Node) Replication() *replication.Service { return n.repl }
+
+// Provenance returns the origin log.
+func (n *Node) Provenance() *provenance.Log { return n.prov }
 
 // ID returns the persistent NodeID.
 func (n *Node) ID() identity.NodeID {
@@ -161,7 +187,7 @@ func (n *Node) Status() Status {
 	return n.status
 }
 
-// Start boots the node.
+// Start boots the node and optional TCP network (multi-node).
 func (n *Node) Start(ctx context.Context) error {
 	n.mu.Lock()
 	if n.status == StatusRunning || n.status == StatusStarting {
@@ -174,24 +200,47 @@ func (n *Node) Start(ctx context.Context) error {
 	runCtx, cancel := context.WithCancel(ctx)
 	n.cancel = cancel
 
+	if n.cfg.NetworkAddr != "" {
+		tr := network.NewTCPTransport(string(n.identity.ID), n.peerID, n.cfg.NetworkAddr)
+		for id, addr := range n.cfg.Peers {
+			tr.AddPeer(id, addr)
+		}
+		n.repl = replication.NewService(string(n.identity.ID), tr)
+		tr.OnMessage(func(msg network.Message) {
+			n.onNetworkMessage(msg)
+		})
+		if err := tr.Listen(runCtx); err != nil {
+			cancel()
+			n.mu.Lock()
+			n.status = StatusStopped
+			n.mu.Unlock()
+			return err
+		}
+		n.transport = tr
+	}
+
 	n.mu.Lock()
 	n.status = StatusRunning
 	n.started = time.Now().UTC()
 	n.mu.Unlock()
 
 	n.bus.PublishType("node.started", string(n.identity.ID), map[string]any{
-		"name": n.cfg.Name,
-		"id":   string(n.identity.ID),
+		"name":    n.cfg.Name,
+		"id":      string(n.identity.ID),
+		"peer_id": n.peerID,
+		"net":     n.cfg.NetworkAddr,
 	})
 	if n.pulses != nil {
 		n.pulses.EmitType(string(n.identity.ID), "node.started", string(n.identity.ID), map[string]any{
-			"name": n.cfg.Name,
+			"name": n.cfg.Name, "peer_id": n.peerID,
 		})
 	}
 
-	// Background: keep context alive until Stop or parent cancel.
 	go func() {
 		<-runCtx.Done()
+		if n.transport != nil {
+			_ = n.transport.Close()
+		}
 		n.mu.Lock()
 		n.status = StatusStopped
 		n.mu.Unlock()
@@ -199,6 +248,98 @@ func (n *Node) Start(ctx context.Context) error {
 	}()
 
 	return nil
+}
+
+func (n *Node) onNetworkMessage(msg network.Message) {
+	if n.repl == nil {
+		return
+	}
+	if msg.Type != "organism.replicate" && msg.Type != "organism.activate" {
+		return
+	}
+	n.repl.HandleMessage(msg)
+	var snap replication.Snapshot
+	if err := json.Unmarshal(msg.Payload, &snap); err != nil {
+		return
+	}
+	promote := msg.Type == "organism.activate"
+	note := "replicated"
+	if promote {
+		note = "recovered-activate"
+	}
+	_, err := n.organisms.Adopt(&snap.Organism, promote, note)
+	if err == nil && n.prov != nil {
+		n.prov.Add(provenance.Record{
+			OrganismID: snap.Organism.ID, Action: note, Actor: string(n.identity.ID),
+			RootCID: snap.Organism.RootCID, Detail: msg.From,
+		})
+	}
+}
+
+// ReplicateOrganism copies organism to remote replica node IDs over the network.
+func (n *Node) ReplicateOrganism(orgID string, replicaNodeIDs []string) error {
+	if n.repl == nil || n.transport == nil {
+		return fmt.Errorf("network not enabled (set PRISMATEC_NETWORK_ADDR)")
+	}
+	org, err := n.organisms.Get(orgID)
+	if err != nil {
+		return err
+	}
+	org.Placement.Primary = string(n.identity.ID)
+	if _, err := n.organisms.SetReplicas(orgID, replicaNodeIDs); err != nil {
+		return err
+	}
+	org, _ = n.organisms.Get(orgID)
+	_, err = n.repl.Replicate(org, replicaNodeIDs)
+	if err != nil {
+		return err
+	}
+	if n.prov != nil {
+		n.prov.Add(provenance.Record{
+			OrganismID: org.ID, Action: "replicate", Actor: string(n.identity.ID),
+			RootCID: org.RootCID, Detail: fmt.Sprintf("%v", replicaNodeIDs),
+		})
+	}
+	return nil
+}
+
+// RecoverOrganism promotes a local replica if primary is unreachable.
+func (n *Node) RecoverOrganism(orgID string) (*replication.RecoverResult, error) {
+	if n.repl == nil {
+		return nil, fmt.Errorf("network/replication not enabled")
+	}
+	// mark primary offline if not in peers
+	n.repl.SetOnlineFunc(func(id string) bool {
+		if id == string(n.identity.ID) {
+			return true
+		}
+		if n.transport == nil {
+			return false
+		}
+		for _, p := range n.transport.Peers() {
+			if p.NodeID == id {
+				return true
+			}
+		}
+		return false
+	})
+	res, err := n.repl.RecoverIfPrimaryDown(orgID)
+	if err != nil {
+		return &res, err
+	}
+	if res.Success {
+		snap := n.repl.GetReplica(orgID)
+		if snap != nil {
+			_, _ = n.organisms.Adopt(&snap.Organism, true, "recovered")
+			if n.prov != nil {
+				n.prov.Add(provenance.Record{
+					OrganismID: orgID, Action: "recover", Actor: string(n.identity.ID),
+					RootCID: snap.Organism.RootCID, Detail: res.Reason,
+				})
+			}
+		}
+	}
+	return &res, nil
 }
 
 // Stop shuts the node down.
@@ -212,6 +353,9 @@ func (n *Node) Stop() error {
 	if n.cancel != nil {
 		n.cancel()
 		n.cancel = nil
+	}
+	if n.transport != nil {
+		_ = n.transport.Close()
 	}
 	n.status = StatusStopped
 	return nil
@@ -229,13 +373,21 @@ func (n *Node) Info() map[string]any {
 	if n.pulses != nil {
 		pulseCount = n.pulses.Count()
 	}
+	peers := 0
+	netAddr := n.cfg.NetworkAddr
+	if n.transport != nil {
+		peers = len(n.transport.Peers())
+	}
 	return map[string]any{
-		"name":       n.cfg.Name,
-		"node_id":    string(n.identity.ID),
-		"status":     string(n.status),
-		"started_at": n.started,
-		"organisms":  count,
-		"pulses":     pulseCount,
-		"data_dir":   n.cfg.DataDir,
+		"name":         n.cfg.Name,
+		"node_id":      string(n.identity.ID),
+		"peer_id":      n.peerID,
+		"status":       string(n.status),
+		"started_at":   n.started,
+		"organisms":    count,
+		"pulses":       pulseCount,
+		"data_dir":     n.cfg.DataDir,
+		"network_addr": netAddr,
+		"peers":        peers,
 	}
 }

@@ -201,6 +201,57 @@ func (m *Manager) Stop(id string) (*Organism, error) {
 }
 
 // Get returns a snapshot by ID.
+
+// Adopt installs an organism snapshot from another node (replication / recovery).
+// RootCID is preserved; Primary becomes this node when promote is true.
+func (m *Manager) Adopt(src *Organism, promote bool, note string) (*Organism, error) {
+	if src == nil {
+		return nil, fmt.Errorf("nil organism")
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	cp := src.Snapshot()
+	if promote {
+		cp.Placement.Primary = m.nodeID
+		cp.Status = StatusRunning
+		cp.CurrentAction = "recovered"
+	} else {
+		// cold replica stays ready/stopped
+		if cp.Status == StatusRunning {
+			cp.Status = StatusReady
+		}
+		cp.CurrentAction = "replica"
+	}
+	cp.Touch(m.nodeID, note)
+	m.byID[cp.ID] = cp
+	if err := m.persistLocked(cp); err != nil {
+		return nil, err
+	}
+	m.syncRegistry(cp)
+	ev := "organism.replicated"
+	if promote {
+		ev = "organism.recovered"
+	}
+	m.emit(ev, cp, map[string]any{"primary": cp.Placement.Primary, "note": note})
+	return cp.Snapshot(), nil
+}
+
+// SetReplicas updates placement.replicas on the primary.
+func (m *Manager) SetReplicas(id string, replicas []string) (*Organism, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	org, err := m.getLocked(id)
+	if err != nil {
+		return nil, err
+	}
+	org.Placement.Replicas = append([]string(nil), replicas...)
+	org.Touch(m.nodeID, "set-replicas")
+	if err := m.persistLocked(org); err != nil {
+		return nil, err
+	}
+	return org.Snapshot(), nil
+}
+
 func (m *Manager) Get(id string) (*Organism, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

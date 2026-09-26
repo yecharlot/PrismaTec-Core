@@ -411,6 +411,39 @@ func (s *Server) execCommand(cmd Command) CommandResult {
 		}
 		return CommandResult{AIP: Version, OK: true, Error: res.Text}
 
+	case "replicate":
+		id := str("id")
+		remote := str("remote_node_id")
+		if id == "" || remote == "" {
+			return CommandResult{AIP: Version, OK: false, Error: "params.id and params.remote_node_id required"}
+		}
+		if err := s.Node.ReplicateOrganism(id, []string{remote}); err != nil {
+			return CommandResult{AIP: Version, OK: false, Error: err.Error()}
+		}
+		o, _ := mgr.Get(id)
+		v := viewOf(o)
+		return CommandResult{AIP: Version, OK: true, Organism: &v}
+
+	case "recover":
+		id := str("id")
+		if id == "" {
+			return CommandResult{AIP: Version, OK: false, Error: "params.id required"}
+		}
+		res, err := s.Node.RecoverOrganism(id)
+		if err != nil {
+			return CommandResult{AIP: Version, OK: false, Error: err.Error()}
+		}
+		detail := res.Reason
+		if !res.Success {
+			return CommandResult{AIP: Version, OK: false, Error: detail}
+		}
+		o, _ := mgr.Get(id)
+		if o != nil {
+			v := viewOf(o)
+			return CommandResult{AIP: Version, OK: true, Organism: &v, Error: detail}
+		}
+		return CommandResult{AIP: Version, OK: true, Error: detail}
+
 	case "policy.check":
 		id := str("id")
 		action := str("action")
