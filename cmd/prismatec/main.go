@@ -15,6 +15,8 @@ import (
 	"github.com/yecharlot/PrismaTec-Core/core"
 	"github.com/yecharlot/PrismaTec-Core/network"
 	"github.com/yecharlot/PrismaTec-Core/core/organism"
+	"github.com/yecharlot/PrismaTec-Core/runtime/mind"
+	"github.com/yecharlot/PrismaTec-Core/runtime/zyrion"
 )
 
 func main() {
@@ -44,6 +46,8 @@ func main() {
 		runPulse(os.Args[2:])
 	case "demo":
 		runDemo(os.Args[2:])
+	case "workorder":
+		runWorkOrder(os.Args[2:])
 	case "version":
 		fmt.Println("prismatec-core 0.2.0-dev (phase-14-e2e)")
 	case "help", "-h", "--help":
@@ -71,6 +75,7 @@ Usage:
   prismatec organism memory episode <id> <type> [content...]
   prismatec pulse list [n]           Show recent pulses (default 20)
   prismatec demo e2e               Run end-to-end checklist (Phase 14)
+  prismatec workorder run [name]   Reference app: Mind proposes, Core authorizes
   prismatec version
   prismatec help
 
@@ -530,4 +535,77 @@ func truncate(s string, n int) string {
 		return s[:n]
 	}
 	return s[:n-3] + "..."
+}
+
+func runWorkOrder(args []string) {
+	if len(args) < 1 || args[0] != "run" {
+		fmt.Fprintln(os.Stderr, "usage: prismatec workorder run [name]")
+		os.Exit(1)
+	}
+	name := "workorder-demo"
+	if len(args) > 1 && args[1] != "" {
+		name = args[1]
+	}
+	n := openNode()
+	mgr := n.Organisms()
+	org, err := mgr.Create(organism.CreateOptions{
+		Name:         name,
+		Capabilities: []organism.Capability{"memory.read", "memory.write"},
+	})
+	if err != nil {
+		// reuse by name if exists
+		list := mgr.List()
+		for _, o := range list {
+			if o.Name == name {
+				org = o
+				err = nil
+				break
+			}
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "create: %v\n", err)
+			os.Exit(1)
+		}
+	}
+	fmt.Printf("WorkOrder organism id=%s root_cid=%s\n", org.ID, org.RootCID)
+
+	m := mind.New(mind.Config{
+		OrganismID: org.ID,
+		Rules: zyrion.RuleSet{Version: "wo-1", Rules: []zyrion.Rule{
+			{ID: "open-note", Version: "wo-1", When: "order.open", Then: "append_note"},
+		}},
+	})
+	_ = m.Observe(mind.Observation{
+		ID:   "cli-obs-1",
+		Type: "order.created",
+		Payload: map[string]any{
+			"note": fmt.Sprintf("field-check %s", time.Now().Format(time.RFC3339)),
+		},
+		At: time.Now().UTC(),
+	})
+	br := &mind.Bridge{Mind: m, Orgs: mgr}
+	ev, res, err := br.Tick(context.Background())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "tick: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Mind decision: selected=%q abstain=%q\n", ev.Decision.Selected, ev.Decision.AbstainReason)
+	fmt.Printf("Core result: authorized=%v executed=%v ok=%v detail=%s seq=%d\n",
+		res.Authorized, res.Executed, res.OK, res.Detail, res.Seq)
+	_ = mind.PersistDecision(mgr, org.ID, ev.Decision)
+
+	// Second tick: illegal action must be denied
+	m2 := mind.New(mind.Config{
+		OrganismID: org.ID,
+		Rules: zyrion.RuleSet{Version: "wo-1", Rules: []zyrion.Rule{
+			{ID: "close", Version: "wo-1", When: "order.open", Then: "order.close"},
+		}},
+	})
+	_ = m2.Observe(mind.Observation{Type: "order.created", At: time.Now().UTC()})
+	_, res2, _ := (&mind.Bridge{Mind: m2, Orgs: mgr}).Tick(context.Background())
+	fmt.Printf("Deny path (order.close): authorized=%v detail=%s\n", res2.Authorized, res2.Detail)
+
+	got, _ := mgr.Get(org.ID)
+	fmt.Printf("Working memory: %v\n", got.Memory.Working)
+	fmt.Println("OK — Mind proposes, Core authorizes/denies. See demos/workorder/README.md")
 }
