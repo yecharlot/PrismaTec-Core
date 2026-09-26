@@ -106,6 +106,9 @@ func openNode() *core.Node {
 	if peers := os.Getenv("PRISMATEC_PEERS"); peers != "" {
 		cfg.Peers = network.ParsePeersEnv(peers)
 	}
+	if tk := os.Getenv("PRISMATEC_TRANSPORT"); tk != "" {
+		cfg.TransportKind = tk
+	}
 	node, err := core.NewNode(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

@@ -167,3 +167,17 @@ Eliminar cabos sueltos: el manifiesto exige plataforma distribuida demostrable, 
 
 ### Guía de acción
 go test ./tests/e2e/ -v ; leer docs/MANIFESTO_COMPLIANCE.md
+
+
+## 2026-09-26 — libp2p Transport adapter
+
+### Qué se hizo
+- network.LibP2PTransport (Noise, /prismatec/aip/1.0.0)
+- Node buildTransport tcp|libp2p
+- Tests LibP2P + docs NETWORK_LIBP2P + INDUSTRIAL_VISION
+
+### Por qué
+Descentralización real detrás de la misma interfaz; narrativa industrial honesta.
+
+### Guía
+PRISMATEC_TRANSPORT=libp2p; go test ./network/ -run LibP2P -v

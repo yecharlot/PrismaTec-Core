@@ -35,9 +35,11 @@ const (
 type Config struct {
 	DataDir     string // directory for identity and local state
 	Name        string // human-readable node name
-	NetworkAddr string // TCP listen e.g. 127.0.0.1:9001 (empty = no multi-node net)
-	// Peers maps remote NodeID → host:port (or use logical names resolved at runtime)
+	NetworkAddr string // TCP host:port OR libp2p multiaddr (/ip4/127.0.0.1/tcp/4001)
+	// Peers maps remote NodeID → address (TCP host:port or peerID@multiaddr / full /p2p/ multiaddr)
 	Peers map[string]string
+	// TransportKind: "tcp" (default when NetworkAddr set without /ip4), "libp2p"
+	TransportKind string
 }
 
 // DefaultConfig returns sensible defaults.
@@ -201,9 +203,13 @@ func (n *Node) Start(ctx context.Context) error {
 	n.cancel = cancel
 
 	if n.cfg.NetworkAddr != "" {
-		tr := network.NewTCPTransport(string(n.identity.ID), n.peerID, n.cfg.NetworkAddr)
-		for id, addr := range n.cfg.Peers {
-			tr.AddPeer(id, addr)
+		tr, err := n.buildTransport(runCtx)
+		if err != nil {
+			cancel()
+			n.mu.Lock()
+			n.status = StatusStopped
+			n.mu.Unlock()
+			return err
 		}
 		n.repl = replication.NewService(string(n.identity.ID), tr)
 		tr.OnMessage(func(msg network.Message) {
@@ -211,12 +217,16 @@ func (n *Node) Start(ctx context.Context) error {
 		})
 		if err := tr.Listen(runCtx); err != nil {
 			cancel()
+			_ = tr.Close()
 			n.mu.Lock()
 			n.status = StatusStopped
 			n.mu.Unlock()
 			return err
 		}
 		n.transport = tr
+		if lp, ok := tr.(*network.LibP2PTransport); ok {
+			n.peerID = lp.PeerID() // real libp2p peer id
+		}
 	}
 
 	n.mu.Lock()
@@ -248,6 +258,36 @@ func (n *Node) Start(ctx context.Context) error {
 	}()
 
 	return nil
+}
+
+
+func (n *Node) buildTransport(ctx context.Context) (network.Transport, error) {
+	kind := n.cfg.TransportKind
+	addr := n.cfg.NetworkAddr
+	if kind == "" {
+		if len(addr) > 0 && addr[0] == '/' {
+			kind = "libp2p"
+		} else {
+			kind = "tcp"
+		}
+	}
+	switch kind {
+	case "libp2p":
+		tr, err := network.NewLibP2PTransport(ctx, string(n.identity.ID), addr, nil)
+		if err != nil {
+			return nil, err
+		}
+		for id, a := range n.cfg.Peers {
+			_ = tr.AddPeer(id, a) // best-effort; dial loop via Send
+		}
+		return tr, nil
+	default:
+		tr := network.NewTCPTransport(string(n.identity.ID), n.peerID, addr)
+		for id, a := range n.cfg.Peers {
+			tr.AddPeer(id, a)
+		}
+		return tr, nil
+	}
 }
 
 func (n *Node) onNetworkMessage(msg network.Message) {
@@ -389,5 +429,6 @@ func (n *Node) Info() map[string]any {
 		"data_dir":     n.cfg.DataDir,
 		"network_addr": netAddr,
 		"peers":        peers,
+		"transport":    n.cfg.TransportKind,
 	}
 }
