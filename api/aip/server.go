@@ -11,6 +11,7 @@ import (
 
 	"github.com/yecharlot/PrismaTec-Core/core"
 	"github.com/yecharlot/PrismaTec-Core/core/organism"
+	"github.com/yecharlot/PrismaTec-Core/core/policy"
 	"github.com/yecharlot/PrismaTec-Core/core/pulse"
 )
 
@@ -310,6 +311,26 @@ func (s *Server) execCommand(cmd Command) CommandResult {
 		}
 		v := viewOf(o)
 		return CommandResult{AIP: Version, OK: true, Organism: &v}
+
+	case "policy.check":
+		id := str("id")
+		action := str("action")
+		if id == "" || action == "" {
+			return CommandResult{AIP: Version, OK: false, Error: "params.id and params.action required"}
+		}
+		o, err := mgr.Get(id)
+		if err != nil {
+			return CommandResult{AIP: Version, OK: false, Error: err.Error()}
+		}
+		eng := organism.EngineFor(o)
+		d := eng.Evaluate(policy.Request{
+			Subject: policy.Subject{Type: "organism", ID: o.ID, Role: o.Policy.DefaultRole},
+			Action:  action,
+			Resource: policy.Resource{Type: str("resource_type"), ID: o.ID},
+			Context: policy.Condition{"status": string(o.Status)},
+		})
+		v := viewOf(o)
+		return CommandResult{AIP: Version, OK: d.Allowed, Error: d.Reason, Organism: &v}
 
 	default:
 		return CommandResult{AIP: Version, OK: false, Error: "unknown action: " + cmd.Action}

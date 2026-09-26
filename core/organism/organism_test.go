@@ -128,7 +128,7 @@ func TestManagerDuplicateName(t *testing.T) {
 func TestPutMemory(t *testing.T) {
 	dir := t.TempDir()
 	m, _ := NewManager(dir, "node:t", "n", events.NewBus(), registry.New())
-	org, _ := m.Create(CreateOptions{Name: "mem-agent"})
+	org, _ := m.Create(CreateOptions{Name: "mem-agent", Capabilities: []Capability{"memory.read", "memory.write"}})
 	org, err := m.PutMemory(org.ID, "sample", "analyzed")
 	if err != nil {
 		t.Fatal(err)
@@ -155,7 +155,7 @@ func TestEpisodicAndCID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	org, err := m.Create(CreateOptions{Name: "lab-agent"})
+	org, err := m.Create(CreateOptions{Name: "lab-agent", Capabilities: []Capability{"memory.read", "memory.write"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,5 +195,29 @@ func TestEpisodicAndCID(t *testing.T) {
 	data2, err := m2.GetBlock(got.Memory.Episodic[0].ContentCID)
 	if err != nil || string(data2) != string(blob) {
 		t.Fatalf("restore block: %v %q", err, data2)
+	}
+}
+
+func TestPolicyDenyMemoryWrite(t *testing.T) {
+	dir := t.TempDir()
+	m, err := NewManager(dir, "node:t", "n", events.NewBus(), registry.New())
+	if err != nil {
+		t.Fatal(err)
+	}
+	org, err := m.Create(CreateOptions{
+		Name:         "locked-agent",
+		Capabilities: []Capability{"inference"},
+		Policy: Policy{Rules: map[string]bool{
+			"inference":     true,
+			"memory.write":  false,
+			"memory.read":   false,
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = m.PutMemory(org.ID, "x", "y")
+	if err == nil {
+		t.Fatal("expected policy deny")
 	}
 }

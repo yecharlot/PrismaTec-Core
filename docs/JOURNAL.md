@@ -78,3 +78,17 @@ El token de GitHub usado para el push quedó expuesto en el chat: **revocar y ge
 1. Revocar token expuesto
 2. Abrir demo en browser con node start
 3. Fase 7 o 10 según prioridad
+
+
+## 2026-09-26 — Fase 7 Policy
+
+### Qué se hizo
+- core/policy Engine (allow/deny, priority, wildcards, conditions)
+- Integración organism Manager + AIP policy.check
+- Tests + docs PHASE7
+
+### Por qué
+Authorization real antes de execution/network.
+
+### Guía de acción
+Push a GitHub; siguiente Fase 8 o 10.

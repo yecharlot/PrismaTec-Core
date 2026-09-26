@@ -42,7 +42,7 @@ func main() {
 	case "pulse":
 		runPulse(os.Args[2:])
 	case "version":
-		fmt.Println("prismatec-core 0.2.0-dev (phase-5-aip)")
+		fmt.Println("prismatec-core 0.2.0-dev (phase-7-policy)")
 	case "help", "-h", "--help":
 		printUsage()
 	default:

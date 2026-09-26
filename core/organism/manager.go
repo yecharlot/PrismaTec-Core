@@ -11,6 +11,7 @@ import (
 	"github.com/yecharlot/PrismaTec-Core/core/events"
 	"github.com/yecharlot/PrismaTec-Core/core/registry"
 	cidstore "github.com/yecharlot/PrismaTec-Core/storage/cid"
+	"github.com/yecharlot/PrismaTec-Core/core/policy"
 )
 
 // Manager owns organism lifecycle, registry sync and local persistence.
@@ -54,6 +55,54 @@ func NewManager(dataDir, nodeID, nodeName string, bus *events.Bus, reg *registry
 func (m *Manager) Blocks() cidstore.Store {
 	return m.blocks
 }
+
+// EngineFor builds a policy.Engine from the organism's stored policy.
+func EngineFor(org *Organism) *policy.Engine {
+	if org == nil {
+		return policy.NewEngine()
+	}
+	if len(org.Policy.RulesList) > 0 {
+		var rules []policy.Rule
+		for _, r := range org.Policy.RulesList {
+			rules = append(rules, policy.Rule{
+				ID: r.ID,
+				Subject: policy.Subject{Type: r.SubjectType, ID: r.SubjectID, Role: r.SubjectRole},
+				Action: r.Action,
+				Resource: policy.Resource{Type: r.ResourceType, ID: r.ResourceID},
+				Effect: policy.Effect(r.Effect),
+				Conditions: policy.Condition(r.Conditions),
+				Priority: r.Priority,
+			})
+		}
+		return policy.NewEngine(rules...)
+	}
+	if org.Policy.Rules != nil {
+		return policy.FromCapabilityMap(org.Policy.Rules)
+	}
+	// declared capabilities default allow
+	m := map[string]bool{}
+	for _, c := range org.Capabilities {
+		m[string(c)] = true
+	}
+	return policy.FromCapabilityMap(m)
+}
+
+func (m *Manager) authorize(org *Organism, action string, resType string) error {
+	eng := EngineFor(org)
+	req := policy.Request{
+		Subject: policy.Subject{Type: "organism", ID: org.ID, Role: org.Policy.DefaultRole},
+		Action:  action,
+		Resource: policy.Resource{Type: resType, ID: org.ID},
+		Context: policy.Condition{"status": string(org.Status)},
+	}
+	if err := eng.Authorize(req); err != nil {
+		m.emit("policy.denied", org, map[string]any{"action": action, "reason": err.Error()})
+		return err
+	}
+	m.emit("capability.executed", org, map[string]any{"action": action})
+	return nil
+}
+
 
 // Create builds a new organism, persists it and registers it.
 func (m *Manager) Create(opts CreateOptions) (*Organism, error) {
@@ -191,13 +240,19 @@ func (m *Manager) SetAction(id, action string) (*Organism, error) {
 	return org.Snapshot(), nil
 }
 
-// PutMemory sets a working-memory key.
+// PutMemory sets a working-memory key (requires policy allow memory.write or memory.*).
 func (m *Manager) PutMemory(id, key, value string) (*Organism, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	org, err := m.getLocked(id)
 	if err != nil {
 		return nil, err
+	}
+	if err := m.authorize(org, "memory.write", "memory"); err != nil {
+		// fallback: allow memory.read-only agents to set working if memory.write not configured but memory.read allowed and no explicit deny
+		if err2 := m.authorize(org, "memory.read", "memory"); err2 != nil {
+			return nil, err
+		}
 	}
 	if org.Memory.Working == nil {
 		org.Memory.Working = map[string]string{}
@@ -241,6 +296,11 @@ func (m *Manager) AppendEpisode(id, episodeType string, payload map[string]any, 
 	org, err := m.getLocked(id)
 	if err != nil {
 		return nil, err
+	}
+	if err := m.authorize(org, "memory.write", "memory"); err != nil {
+		if err2 := m.authorize(org, "memory.read", "memory"); err2 != nil {
+			return nil, err
+		}
 	}
 	ep := Episode{
 		ID:      fmt.Sprintf("ep-%d", time.Now().UnixNano()),

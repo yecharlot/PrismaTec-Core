@@ -12,10 +12,26 @@ import (
 // Authorization is decided later by Policy (Phase 7).
 type Capability string
 
-// Policy is a minimal placeholder for Phase 7.
-// Format evolves toward: WHO can DO WHAT to WHICH under CONDITIONS.
+// Policy is persisted with the organism. Simple map is legacy; RulesList is Phase 7.
+// Format: WHO can DO WHAT to WHICH under CONDITIONS (see core/policy).
 type Policy struct {
-	Rules map[string]bool `json:"rules,omitempty"` // capability name → allowed
+	Rules     map[string]bool `json:"rules,omitempty"` // legacy capability → allowed
+	RulesList []PolicyRule    `json:"rules_list,omitempty"`
+	DefaultRole string        `json:"default_role,omitempty"`
+}
+
+// PolicyRule is a serializable form of core/policy.Rule (avoid import cycles in JSON).
+type PolicyRule struct {
+	ID       string            `json:"id,omitempty"`
+	SubjectType string         `json:"subject_type,omitempty"`
+	SubjectID   string         `json:"subject_id,omitempty"`
+	SubjectRole string         `json:"subject_role,omitempty"`
+	Action   string            `json:"action"`
+	ResourceType string        `json:"resource_type,omitempty"`
+	ResourceID   string        `json:"resource_id,omitempty"`
+	Effect   string            `json:"effect"` // allow|deny
+	Conditions map[string]string `json:"conditions,omitempty"`
+	Priority int               `json:"priority,omitempty"`
 }
 
 // Episode is a time-ordered memory event (episodic memory).
