@@ -122,3 +122,17 @@ Plano de control observable sobre Core real.
 
 ### Guía de acción
 Push GitHub; node start → /studio/
+
+
+## 2026-09-26 — Fase 14 E2E
+
+### Qué se hizo
+- tests/e2e TestE2E_ManifestChecklist (12 steps) + AIP HTTP
+- prismatec demo e2e
+- docs PHASE14
+
+### Por qué
+Cerrar el criterio de éxito automatizado.
+
+### Guía de acción
+go test ./tests/e2e/ -v ; push GitHub; Phase 15 security.

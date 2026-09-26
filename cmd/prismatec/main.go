@@ -41,8 +41,10 @@ func main() {
 		runOrganism(os.Args[2:])
 	case "pulse":
 		runPulse(os.Args[2:])
+	case "demo":
+		runDemo(os.Args[2:])
 	case "version":
-		fmt.Println("prismatec-core 0.2.0-dev (phase-7-policy)")
+		fmt.Println("prismatec-core 0.2.0-dev (phase-14-e2e)")
 	case "help", "-h", "--help":
 		printUsage()
 	default:
@@ -67,6 +69,7 @@ Usage:
   prismatec organism memory semantic <id> <key> <value>
   prismatec organism memory episode <id> <type> [content...]
   prismatec pulse list [n]           Show recent pulses (default 20)
+  prismatec demo e2e               Run end-to-end checklist (Phase 14)
   prismatec version
   prismatec help
 
@@ -327,6 +330,54 @@ func printOrganism(o *organism.Organism) {
 	fmt.Println("└─────────────────────────────────────────────┘")
 	fmt.Printf("Name: %s  Version: %s  Updated: %s\n", o.Name, o.Version, o.UpdatedAt.Format(time.RFC3339))
 }
+
+func runDemo(args []string) {
+	if len(args) < 1 || args[0] != "e2e" {
+		fmt.Fprintln(os.Stderr, "usage: prismatec demo e2e")
+		os.Exit(1)
+	}
+	// Delegate to documented test path — print instructions + quick local smoke via node APIs
+	fmt.Println("PrismaTec Core — E2E Demo (Phase 14)")
+	fmt.Println("Full automated checklist:")
+	fmt.Println("  go test ./tests/e2e/ -count=1 -v")
+	fmt.Println()
+	fmt.Println("Manual Studio path:")
+	fmt.Println("  1. go run ./cmd/prismatec node start")
+	fmt.Println("  2. open http://127.0.0.1:8080/studio/")
+	fmt.Println("  3. Create → Start → Memory → Pulse stream → Execute / Policy")
+	fmt.Println()
+	// Local smoke using same DataDir process
+	node := openNode()
+	mgr := node.Organisms()
+	name := fmt.Sprintf("demo-%d", time.Now().Unix()%100000)
+	org, err := mgr.Create(organism.CreateOptions{
+		Name: name,
+		Capabilities: []organism.Capability{"memory.read", "memory.write", "inference"},
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "create: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("[ok] create     id=%s rootcid=%s\n", org.ID, truncate(org.RootCID, 28))
+	org, err = mgr.PutMemory(org.ID, "demo", "1")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "memory: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println("[ok] memory")
+	org, err = mgr.Start(org.ID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "start: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("[ok] start      status=%s\n", org.Status)
+	fmt.Printf("[ok] pulses     count=%d (this process; full pulse log needs node start)\n", node.Pulses().Count())
+	fmt.Println("[ok] identity   NodeID="+string(node.ID()))
+	fmt.Println()
+	fmt.Println("Checklist 10–12 (replicate/recover) covered by: go test ./tests/e2e/")
+	fmt.Println("Studio: http://127.0.0.1:8080/studio/  after  prismatec node start")
+}
+
 
 func runPulse(args []string) {
 	node := openNode()
