@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PrismaTec Control Studio</title>
+  <link rel="stylesheet" href="studio.css" />
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="logo">◈</span>
+        <div>
+          <strong>PRISMATEC</strong>
+          <small>CONTROL STUDIO</small>
+        </div>
+      </div>
+      <nav>
+        <button class="nav active" data-view="overview">Overview</button>
+        <button class="nav" data-view="organisms">Organisms</button>
+        <button class="nav" data-view="pulse">Pulse</button>
+        <button class="nav" data-view="execution">Execution</button>
+        <button class="nav" data-view="policy">Policy</button>
+      </nav>
+      <div class="side-foot">
+        <label class="muted">AIP base</label>
+        <input id="baseUrl" placeholder="same-origin" />
+        <button id="btnConnect" class="primary">Connect</button>
+        <div id="connBadge" class="badge off">OFFLINE</div>
+      </div>
+    </aside>
+
+    <main>
+      <header class="top">
+        <h1 id="viewTitle">Overview</h1>
+        <div class="top-actions">
+          <span id="healthBadge" class="badge">health —</span>
+          <button id="btnRefresh">Refresh</button>
+        </div>
+      </header>
+
+      <!-- OVERVIEW -->
+      <section id="view-overview" class="view active">
+        <div class="cards-3">
+          <article class="card">
+            <h3>Node</h3>
+            <pre id="nodeInfo" class="code">—</pre>
+          </article>
+          <article class="card">
+            <h3>Health</h3>
+            <ul class="kv" id="healthList">
+              <li><span>HTTP</span><span id="hHttp">—</span></li>
+              <li><span>AIP</span><span id="hAip">—</span></li>
+              <li><span>Organisms</span><span id="hOrgs">—</span></li>
+              <li><span>Pulse seq</span><span id="hPulse">—</span></li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>Quick create</h3>
+            <div class="stack">
+              <input id="qName" value="research-agent-01" />
+              <button id="btnQuickCreate" class="primary">Create organism</button>
+              <p id="qMsg" class="msg"></p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ORGANISMS -->
+      <section id="view-organisms" class="view">
+        <div class="split">
+          <article class="card">
+            <h3>List</h3>
+            <ul id="orgList" class="list"></ul>
+          </article>
+          <article class="card grow">
+            <h3>Inspector</h3>
+            <div id="orgInspector" class="inspector">
+              <div class="line">ID <span data-f="id">—</span></div>
+              <div class="line">RootCID <span data-f="root_cid">—</span></div>
+              <div class="line">Node <span data-f="node_id">—</span></div>
+              <div class="line">STATUS <span class="dot" id="stDot"></span> <span data-f="status">—</span></div>
+              <div class="line">MEMORY <span data-f="memory">—</span></div>
+              <div class="line">CAPABILITIES <span data-f="capabilities">—</span></div>
+              <div class="line">ACTION <span data-f="current_action">—</span></div>
+              <h4>Policy</h4>
+              <ul id="polList"></ul>
+              <div class="row">
+                <button id="btnStart">Start</button>
+                <button id="btnStop">Stop</button>
+                <button id="btnMem">Memory set</button>
+              </div>
+              <div class="row">
+                <input id="memKey" value="focus" />
+                <input id="memVal" value="analyzing sample" class="grow" />
+              </div>
+              <p id="orgMsg" class="msg"></p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- PULSE -->
+      <section id="view-pulse" class="view">
+        <article class="card">
+          <h3>Live stream <span id="pulseCount" class="badge">0</span></h3>
+          <ul id="pulseLog" class="log"></ul>
+        </article>
+      </section>
+
+      <!-- EXECUTION -->
+      <section id="view-execution" class="view">
+        <div class="cards-2">
+          <article class="card">
+            <h3>Execute (builtin)</h3>
+            <div class="stack">
+              <input id="exEntry" value="ping" placeholder="entry: ping|echo" />
+              <input id="exInput" value="" placeholder="input (for echo)" />
+              <button id="btnExec" class="primary">Run</button>
+              <pre id="exOut" class="code">—</pre>
+            </div>
+          </article>
+          <article class="card">
+            <h3>Infer (echo provider)</h3>
+            <div class="stack">
+              <input id="infPrompt" value="status of organism?" class="grow" />
+              <button id="btnInfer" class="primary">Infer</button>
+              <pre id="infOut" class="code">—</pre>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- POLICY -->
+      <section id="view-policy" class="view">
+        <article class="card">
+          <h3>Policy check</h3>
+          <div class="row">
+            <input id="polAction" value="memory.write" />
+            <button id="btnPolCheck" class="primary">Check</button>
+          </div>
+          <pre id="polOut" class="code">—</pre>
+        </article>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="studio.js"></script>
+</body>
+</html>

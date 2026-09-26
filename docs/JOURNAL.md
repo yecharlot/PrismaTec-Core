@@ -108,3 +108,17 @@ Cerrar el camino técnico a Demos 2/3 sin esperar libp2p completo.
 
 ### Guía de acción
 Push GitHub; opcional CLI multi-node; Phase 13 Studio.
+
+
+## 2026-09-26 — Fase 13 Control Studio
+
+### Qué se hizo
+- demos/studio Control Studio UI
+- Routes /studio/ and / still → studio
+- docs PHASE13
+
+### Por qué
+Plano de control observable sobre Core real.
+
+### Guía de acción
+Push GitHub; node start → /studio/

@@ -37,19 +37,26 @@ func (s *Server) Handler() http.Handler {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
-	// Demo 1 panel (Phase 6) — static files next to module or CWD
-	panelDir := findPanelDir()
-	if panelDir != "" {
-		fs := http.FileServer(http.Dir(panelDir))
-		mux.Handle("/demo/", http.StripPrefix("/demo/", fs))
-		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/" {
+	// Static UIs: Control Studio (Phase 13) + Demo 1 panel (Phase 6)
+	if dir := findDemoDir("demos/studio"); dir != "" {
+		mux.Handle("/studio/", http.StripPrefix("/studio/", http.FileServer(http.Dir(dir))))
+	}
+	if dir := findDemoDir("demos/aip-panel"); dir != "" {
+		mux.Handle("/demo/", http.StripPrefix("/demo/", http.FileServer(http.Dir(dir))))
+	}
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			if findDemoDir("demos/studio") != "" {
+				http.Redirect(w, r, "/studio/", http.StatusFound)
+				return
+			}
+			if findDemoDir("demos/aip-panel") != "" {
 				http.Redirect(w, r, "/demo/", http.StatusFound)
 				return
 			}
-			http.NotFound(w, r)
-		})
-	}
+		}
+		http.NotFound(w, r)
+	})
 	return withCORS(mux)
 }
 
@@ -368,13 +375,10 @@ func (s *Server) execCommand(cmd Command) CommandResult {
 	}
 }
 
-func findPanelDir() string {
-	candidates := []string{
-		"demos/aip-panel",
-		filepath.Join("..", "demos", "aip-panel"),
-	}
+func findDemoDir(rel string) string {
+	candidates := []string{rel, filepath.Join("..", rel)}
 	if wd, err := os.Getwd(); err == nil {
-		candidates = append([]string{filepath.Join(wd, "demos", "aip-panel")}, candidates...)
+		candidates = append([]string{filepath.Join(wd, rel)}, candidates...)
 	}
 	for _, c := range candidates {
 		if st, err := os.Stat(filepath.Join(c, "index.html")); err == nil && !st.IsDir() {
