@@ -37,3 +37,25 @@ cd /home/workdir/artifacts/PrismaTec-Core
 go test ./...
 # ok core, organism, pulse, storage/cid, ...
 ```
+
+
+## 2026-09-26 — Fase 5 AIP v1 + ruta GitHub
+
+### Qué se hizo
+- `api/aip` tipos + servidor HTTP/SSE
+- Endpoints info, organisms, pulses, pulse SSE, commands
+- `node start` escucha AIP (PRISMATEC_AIP_ADDR, default :8080)
+- Tests API + smoke curl real
+- `docs/GITHUB.md` — cómo publicar en github.com/yecharlot/PrismaTec-Core
+- `.gitignore` añadido
+
+### Por qué
+Cerrar el contrato Core↔clientes antes de UI.
+
+### Pensamiento futuro
+Fase 6 = panel mínimo en JS (puede vivir en demos/ o extraer de Alset-JS-Runtime solo Registry+EventSource).
+
+### Guía de acción
+1. Publicar repo en GitHub siguiendo docs/GITHUB.md
+2. Fase 6 Demo 1
+3. GOPROXY=https://proxy.golang.org,direct y GOTOOLCHAIN=go1.25.0

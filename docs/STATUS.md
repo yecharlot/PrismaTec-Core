@@ -1,6 +1,6 @@
 # STATUS — Qué tenemos vs propósito final
 
-**Actualizado:** 2026-09-26 (cierre Fase 4)
+**Actualizado:** 2026-09-26 (cierre Fase 5 — AIP v1)
 
 ## Propósito final (manifiesto)
 
@@ -28,6 +28,7 @@ Identity · State · Memory · Capability · Policy · Execution · Network · P
 | 3 | Memory working/episodic/semantic + block store CID | ✅ |
 | 3b | go-cid / IPFS CIDv1 disponible + cid1 compat | ✅ |
 | 4 | Pulse hub + bridge events→pulse + CLI pulse list | ✅ |
+| 5 | AIP v1 HTTP + SSE + commands | ✅ |
 
 ### Capacidades reales hoy
 
@@ -67,11 +68,11 @@ module: github.com/yecharlot/PrismaTec-Core  (go 1.25.0)
 
 ```
 [x] Core organism + memory + pulse (in-process)
-[ ] AIP transport from long-running node
+[x] AIP transport from long-running node (HTTP + SSE)
 [ ] Alset-JS receives pulse and updates one PIN
 ```
 
-**Recomendación:** Fase 5 + 6 en ese orden, manteniendo `prismatec node start` como proceso que sirve AIP.
+**Recomendación:** Fase 6 — cliente JS mínimo contra `http://localhost:8080/aip/v1/*`.
 
 ---
 

@@ -1,6 +1,6 @@
 # HANDOFF — PrismaTec Core
 
-**Última actualización:** 2026-09-26 (Fase 4 Pulse completada + CID fix)  
+**Última actualización:** 2026-09-26 (Fase 5 AIP v1 completada)  
 **Repositorio local:** `/home/workdir/artifacts/PrismaTec-Core`  
 **Módulo Go:** `github.com/yecharlot/PrismaTec-Core`  
 **Repo objetivo GitHub:** `github.com/yecharlot/PrismaTec-Core` (aún no publicado necesariamente)
@@ -72,7 +72,8 @@ Leer primero:
 | 2 | Organism | ✅ | `docs/PHASE2_ORGANISM.md` |
 | 3 | Memory + CID | ✅ | `docs/PHASE3_MEMORY_CID.md` |
 | 4 | Events + Pulse | ✅ | `docs/PHASE4_PULSE.md` |
-| 5 | AIP v1 | ⏳ siguiente | `docs/MIGRATION.md` |
+| 5 | AIP v1 | ✅ | `docs/PHASE5_AIP.md` |
+| 6 | Alset-JS mínimo | ⏳ siguiente | Demo 1 |
 
 ### Estructura del repo
 
@@ -90,6 +91,7 @@ PrismaTec-Core/
 ├── docs/                          # AUDIT, ARCHITECTURE, MIGRATION, ADRs, HANDOFF, PHASEx
 ├── go.mod                         # module github.com/yecharlot/PrismaTec-Core  (Go 1.25.0)
 ├── core/pulse/                    # Pulse hub (Phase 4)
+├── api/aip/                       # AIP v1 HTTP+SSE (Phase 5)
 ├── README.md
 └── (dirs preparados: network, runtime, api, adapters, sdk, …)
 ```
