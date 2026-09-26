@@ -8,6 +8,7 @@ import (
 
 	"github.com/yecharlot/PrismaTec-Core/core"
 	"github.com/yecharlot/PrismaTec-Core/core/organism"
+	"github.com/yecharlot/PrismaTec-Core/runtime/execution"
 )
 
 // TestE2E_MultiNodeTCP is Demo 2+3 on real TCP (not in-process fabric only).
@@ -16,38 +17,44 @@ func TestE2E_MultiNodeTCP(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Bootstrap once to obtain stable NodeIDs from disk identity, then reload with peer map.
+	bootA, err := core.NewNode(core.Config{
+		DataDir: filepath.Join(dir, "a"), Name: "node-A",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	bootB, err := core.NewNode(core.Config{
+		DataDir: filepath.Join(dir, "b"), Name: "node-B",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	idA := string(bootA.ID())
+	idB := string(bootB.ID())
+	if idA == "" || idB == "" || idA == idB {
+		t.Fatalf("expected distinct NodeIDs, got %q %q", idA, idB)
+	}
+
 	nodeA, err := core.NewNode(core.Config{
-		DataDir:     filepath.Join(dir, "a"),
-		Name:        "node-A",
+		DataDir: filepath.Join(dir, "a"), Name: "node-A",
 		NetworkAddr: "127.0.0.1:19101",
-		Peers:       map[string]string{}, // filled after B id known — use name bridge via second pass
+		Peers:       map[string]string{idB: "127.0.0.1:19102"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	nodeB, err := core.NewNode(core.Config{
-		DataDir:     filepath.Join(dir, "b"),
-		Name:        "node-B",
-		NetworkAddr: "127.0.0.1:19102",
-		Peers:       map[string]string{},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// cross-register by NodeID after creation
-	idA := string(nodeA.ID())
-	idB := string(nodeB.ID())
-	nodeA, _ = core.NewNode(core.Config{
-		DataDir: filepath.Join(dir, "a"), Name: "node-A",
-		NetworkAddr: "127.0.0.1:19101",
-		Peers:       map[string]string{idB: "127.0.0.1:19102"},
-	})
-	nodeB, _ = core.NewNode(core.Config{
 		DataDir: filepath.Join(dir, "b"), Name: "node-B",
 		NetworkAddr: "127.0.0.1:19102",
 		Peers:       map[string]string{idA: "127.0.0.1:19101"},
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(nodeA.ID()) != idA || string(nodeB.ID()) != idB {
+		t.Fatalf("identity drift: A %s want %s; B %s want %s", nodeA.ID(), idA, nodeB.ID(), idB)
+	}
 
 	if err := nodeB.Start(ctx); err != nil {
 		t.Fatal(err)
@@ -58,6 +65,13 @@ func TestE2E_MultiNodeTCP(t *testing.T) {
 	defer nodeA.Stop()
 	defer nodeB.Stop()
 
+	if nodeA.PeerID() == "" || nodeB.PeerID() == "" {
+		t.Fatal("PeerID must be non-empty")
+	}
+	if nodeA.PeerID() == string(nodeA.ID()) {
+		t.Fatal("PeerID must differ from NodeID")
+	}
+
 	org, err := nodeA.Organisms().Create(organism.CreateOptions{
 		Name:         "tcp-movable",
 		Capabilities: []organism.Capability{"memory.read", "memory.write"},
@@ -65,26 +79,32 @@ func TestE2E_MultiNodeTCP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _ = nodeA.Organisms().Start(org.ID)
+	if _, err := nodeA.Organisms().Start(org.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := nodeA.Organisms().PutMemory(org.ID, "focus", "payload-continuity"); err != nil {
+		t.Fatal(err)
+	}
 	root := org.RootCID
+	orgID := org.ID
 
-	// wait for TCP link
+	var lastRep error
 	deadline := time.Now().Add(8 * time.Second)
 	for time.Now().Before(deadline) {
-		if err := nodeA.ReplicateOrganism(org.ID, []string{string(nodeB.ID())}); err == nil {
+		lastRep = nodeA.ReplicateOrganism(orgID, []string{idB})
+		if lastRep == nil {
 			break
 		}
 		time.Sleep(200 * time.Millisecond)
 	}
-	if err := nodeA.ReplicateOrganism(org.ID, []string{string(nodeB.ID())}); err != nil {
-		t.Fatalf("replicate: %v", err)
+	if lastRep != nil {
+		t.Fatalf("replicate: %v", lastRep)
 	}
 
-	// B should adopt replica
 	deadline = time.Now().Add(5 * time.Second)
 	var onB *organism.Organism
 	for time.Now().Before(deadline) {
-		onB, err = nodeB.Organisms().Get(org.ID)
+		onB, err = nodeB.Organisms().Get(orgID)
 		if err == nil {
 			break
 		}
@@ -93,26 +113,64 @@ func TestE2E_MultiNodeTCP(t *testing.T) {
 	if onB == nil || onB.RootCID != root {
 		t.Fatalf("replica on B: %v %+v", err, onB)
 	}
+	if onB.Memory.Working["focus"] != "payload-continuity" {
+		t.Fatalf("memory not replicated: %+v", onB.Memory.Working)
+	}
 
-	// Demo 3: stop A network → recover on B
-	_ = nodeA.Stop()
+	if err := nodeA.Stop(); err != nil {
+		t.Fatal(err)
+	}
 	time.Sleep(200 * time.Millisecond)
 
-	res, err := nodeB.RecoverOrganism(org.ID)
+	res, err := nodeB.RecoverOrganism(orgID)
 	if err != nil || res == nil || !res.Success {
 		t.Fatalf("recover: %+v %v", res, err)
 	}
-	got, err := nodeB.Organisms().Get(org.ID)
-	if err != nil || got.Placement.Primary != string(nodeB.ID()) {
-		t.Fatalf("primary after recover: %+v %v", got, err)
+	got, err := nodeB.Organisms().Get(orgID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Placement.Primary != idB {
+		t.Fatalf("primary after recover: %+v", got.Placement)
 	}
 	if got.RootCID != root {
 		t.Fatal("RootCID must survive recovery")
 	}
-	if nodeA.PeerID() == "" || nodeA.PeerID() == string(nodeA.ID()) {
-		// PeerID must be distinct format
-		if len(nodeB.PeerID()) < 5 {
-			t.Fatal("peer id")
-		}
+	if got.Status != organism.StatusRunning {
+		t.Fatalf("status after recover: %s", got.Status)
+	}
+	if got.Memory.Working["focus"] != "payload-continuity" {
+		t.Fatalf("memory after recover: %+v", got.Memory.Working)
+	}
+
+	eng := execution.BuiltinEngine{}
+	out, err := eng.Execute(context.Background(), execution.Request{
+		OrganismID: got.ID, Entry: "ping",
+	})
+	if err != nil || string(out.Output) != "pong" {
+		t.Fatalf("execute after recover: %v %s", err, out.Output)
+	}
+
+	_ = nodeB.Stop()
+	nodeB2, err := core.NewNode(core.Config{
+		DataDir: filepath.Join(dir, "b"), Name: "node-B",
+		NetworkAddr: "127.0.0.1:19102",
+		Peers:       map[string]string{idA: "127.0.0.1:19101"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(nodeB2.ID()) != idB {
+		t.Fatalf("B identity after restart: %s want %s", nodeB2.ID(), idB)
+	}
+	reloaded, err := nodeB2.Organisms().Get(orgID)
+	if err != nil {
+		t.Fatalf("reload after B restart: %v", err)
+	}
+	if reloaded.RootCID != root || reloaded.Memory.Working["focus"] != "payload-continuity" {
+		t.Fatalf("persist after B restart: %+v", reloaded)
+	}
+	if reloaded.Placement.Primary != idB {
+		t.Fatalf("primary after B restart: %+v", reloaded.Placement)
 	}
 }

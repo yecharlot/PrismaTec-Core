@@ -214,3 +214,41 @@ That is consistent with “advanced prototype / distributed runtime in progress,
 ---
 
 *Generated as an evidence snapshot after executing tests on the cited commit. Re-run the commands in §1 to refresh results if the tree moves.*
+
+---
+
+## 8. Addendum — strengthened MultiNodeTCP (response to external review)
+
+**UTC run:** 2026-09-26T18:15:34Z  
+**Suite:** `go test ./... -count=1` → **0 FAIL** again after test hardening.
+
+### Code review findings addressed
+
+| Finding | Fix in `tests/e2e/multinode_tcp_test.go` |
+|---------|------------------------------------------|
+| Second `NewNode` discarded errors (`nodeA, _ = ...`) | Errors checked with `t.Fatal`; identities re-asserted equal to boot IDs |
+| Recovery only flips status | After recover: assert **memory** `focus=payload-continuity`, **RootCID**, **Primary=B**, then **`BuiltinEngine.Execute(ping)→pong` on B** |
+| Continuity after B restart | Stop B, `NewNode` same DataDir, Get organism → memory + RootCID + Primary preserved |
+| PeerID vs NodeID | Assert PeerID non-empty and **≠** NodeID |
+
+### Updated mapping (10 continuity criteria)
+
+| # | Criterion | After hardening |
+|---|-----------|-----------------|
+| 1 | Distinct NodeIDs + isolated DataDirs | **PROVEN** (explicit assert idA ≠ idB) |
+| 2 | Create + RootCID + persistent state | **PROVEN** (+ memory key) |
+| 3 | TCP replica + integrity | **PROVEN** (RootCID + memory on B) |
+| 4 | Provenance identifiable | Still **partial** (no dedicated provenance tests) |
+| 5 | Abrupt kill -9 | Still **NOT PROVEN** (uses `Stop()`) |
+| 6 | Anti dual-primary / partition | Still **NOT PROVEN** |
+| 7 | Execute after recover on B | **PROVEN** (ping→pong) |
+| 8 | State after B restart | **PROVEN** (reload from disk) |
+| 9 | Automated measurable RPO/RTO | Automated **yes**; RPO/RTO metrics still **no** |
+| 10 | Studio observes failover | Still **NOT in CI** |
+
+**Approx. score vs 10 criteria now: 6 proven, 1 partial, 3 not proven.**
+
+### Defensible claim (updated)
+
+> PrismaTec Core demonstrates **TCP multi-node replication with memory integrity, recovery of primary onto B, post-recover execution, and persistence across B restart** under automated tests. It still does **not** claim hard-kill chaos, split-brain fencing, or production continuity SLOs.
+
