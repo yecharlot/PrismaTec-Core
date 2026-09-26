@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -31,6 +33,19 @@ func (s *Server) Handler() http.Handler {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
+	// Demo 1 panel (Phase 6) — static files next to module or CWD
+	panelDir := findPanelDir()
+	if panelDir != "" {
+		fs := http.FileServer(http.Dir(panelDir))
+		mux.Handle("/demo/", http.StripPrefix("/demo/", fs))
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/" {
+				http.Redirect(w, r, "/demo/", http.StatusFound)
+				return
+			}
+			http.NotFound(w, r)
+		})
+	}
 	return withCORS(mux)
 }
 
@@ -300,3 +315,20 @@ func (s *Server) execCommand(cmd Command) CommandResult {
 		return CommandResult{AIP: Version, OK: false, Error: "unknown action: " + cmd.Action}
 	}
 }
+
+func findPanelDir() string {
+	candidates := []string{
+		"demos/aip-panel",
+		filepath.Join("..", "demos", "aip-panel"),
+	}
+	if wd, err := os.Getwd(); err == nil {
+		candidates = append([]string{filepath.Join(wd, "demos", "aip-panel")}, candidates...)
+	}
+	for _, c := range candidates {
+		if st, err := os.Stat(filepath.Join(c, "index.html")); err == nil && !st.IsDir() {
+			return c
+		}
+	}
+	return ""
+}
+

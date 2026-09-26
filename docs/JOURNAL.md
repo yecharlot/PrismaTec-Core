@@ -59,3 +59,22 @@ Fase 6 = panel mínimo en JS (puede vivir en demos/ o extraer de Alset-JS-Runtim
 1. Publicar repo en GitHub siguiendo docs/GITHUB.md
 2. Fase 6 Demo 1
 3. GOPROXY=https://proxy.golang.org,direct y GOTOOLCHAIN=go1.25.0
+
+
+## 2026-09-26 — GitHub publish + Fase 6 Demo 1
+
+### Qué se hizo
+- Repo público: https://github.com/yecharlot/PrismaTec-Core
+- demos/aip-panel + served at /demo/
+- Documentación PHASE6
+
+### Por qué
+Demo 1 del manifiesto + visibilidad del código en GitHub.
+
+### Seguridad
+El token de GitHub usado para el push quedó expuesto en el chat: **revocar y generar uno nuevo** en GitHub → Settings → Developer settings → Tokens.
+
+### Guía de acción
+1. Revocar token expuesto
+2. Abrir demo en browser con node start
+3. Fase 7 o 10 según prioridad

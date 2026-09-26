@@ -1,6 +1,6 @@
 # HANDOFF — PrismaTec Core
 
-**Última actualización:** 2026-09-26 (Fase 5 AIP v1 completada)  
+**Última actualización:** 2026-09-26 (Fase 6 Demo1 panel + GitHub publicado)  
 **Repositorio local:** `/home/workdir/artifacts/PrismaTec-Core`  
 **Módulo Go:** `github.com/yecharlot/PrismaTec-Core`  
 **Repo objetivo GitHub:** `github.com/yecharlot/PrismaTec-Core` (aún no publicado necesariamente)
@@ -73,7 +73,8 @@ Leer primero:
 | 3 | Memory + CID | ✅ | `docs/PHASE3_MEMORY_CID.md` |
 | 4 | Events + Pulse | ✅ | `docs/PHASE4_PULSE.md` |
 | 5 | AIP v1 | ✅ | `docs/PHASE5_AIP.md` |
-| 6 | Alset-JS mínimo | ⏳ siguiente | Demo 1 |
+| 6 | Alset-JS mínimo / Demo 1 panel | ✅ | `docs/PHASE6_ALSET_JS_DEMO.md` |
+| 7 | Policy engine | ⏳ | `docs/MIGRATION.md` |
 
 ### Estructura del repo
 

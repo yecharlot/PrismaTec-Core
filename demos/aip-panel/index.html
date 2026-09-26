@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PrismaTec Core — AIP Panel</title>
+  <link rel="stylesheet" href="panel.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>PRISMATEC CORE</h1>
+      <p class="sub">AIP v1 · Demo 1 — datos reales del nodo (no mock)</p>
+      <div class="row">
+        <label>AIP base <input id="baseUrl" value="" /></label>
+        <button id="btnConnect">Conectar</button>
+        <button id="btnDisconnect" disabled>Desconectar</button>
+        <span id="connStatus" class="badge off">OFFLINE</span>
+      </div>
+    </header>
+
+    <section class="grid">
+      <article class="card" id="nodeCard">
+        <h2>NODE</h2>
+        <pre id="nodeInfo">—</pre>
+      </article>
+
+      <article class="card" id="orgCard">
+        <h2>ORGANISM</h2>
+        <div class="panel" id="orgPanel">
+          <div class="line">ID: <span data-field="id">—</span></div>
+          <div class="line">RootCID: <span data-field="root_cid">—</span></div>
+          <div class="line">Node: <span data-field="node_id">—</span></div>
+          <div class="line status-line">STATUS <span class="dot" id="statusDot"></span> <span data-field="status">—</span></div>
+          <div class="line">MEMORY <span data-field="memory">—</span></div>
+          <div class="line">CAPABILITIES <span data-field="capabilities">—</span></div>
+          <div class="line">CURRENT ACTION <span data-field="current_action">—</span></div>
+          <div class="line">POLICY</div>
+          <ul id="policyList"></ul>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>ACTIONS</h2>
+        <div class="row wrap">
+          <input id="orgName" placeholder="nombre organismo" value="research-agent-01" />
+          <button id="btnCreate">Create</button>
+          <button id="btnStart">Start</button>
+          <button id="btnStop">Stop</button>
+        </div>
+        <div class="row wrap">
+          <input id="memKey" placeholder="key" value="focus" />
+          <input id="memVal" placeholder="value" value="analyzing sample" />
+          <button id="btnMemory">Memory set</button>
+        </div>
+        <p id="actionMsg" class="msg"></p>
+      </article>
+
+      <article class="card wide">
+        <h2>PULSE STREAM <span id="pulseCount" class="badge">0</span></h2>
+        <ul id="pulseLog" class="log"></ul>
+      </article>
+    </section>
+  </div>
+  <script type="module" src="panel.js"></script>
+</body>
+</html>
