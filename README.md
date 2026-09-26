@@ -1,91 +1,93 @@
 # PrismaTec Core
 
-**Infrastructure runtime for persistent, autonomous and distributed digital entities.**
+**Infrastructure runtime for persistent, autonomous digital entities (Digital Organisms).**
 
-PrismaTec Core provides identity, state, memory, capabilities, policy, execution, communication, provenance and lifecycle management for autonomous digital entities across local, edge and cloud environments.
+Not a chatbot framework. Not a UI kit.  
+A **core layer**: identity, state, memory, capabilities, policy, execution, network, provenance, pulse, lifecycle — exposed through **AIP** and a **Control Studio**.
 
-This is **not** another agent framework, frontend framework, or chatbot.  
-It is the infrastructure layer on which those systems can be built.
+**Repository:** https://github.com/yecharlot/PrismaTec-Core
 
 ---
 
-## Status
+## Status (Phases 0–15)
 
-**Phase 2 — Organism** (current)
-
-- [x] Phase 1 — Core Boot (identity, events, registry, node)
-- [x] Canonical Organism model + RootCID from manifest
-- [x] Lifecycle: create / start / stop / inspect / persist / restore
-- [x] CLI: `organism create|list|inspect|start|stop`
-- [x] Unit tests + end-to-end CLI verification
-- [x] `core/identity` (NodeID via Ed25519, persistent)
-- [x] `core/events` (EventBus)
-- [x] `core/registry` (organism registry)
-- [x] Minimal Node lifecycle (`start` / `stop`)
-- [x] CLI: `prismatec node start` / `node info` / `version`
-- [x] Unit tests passing
-
-**Next:** Phase 3 — Memory + CID
+| Area | Status |
+|------|--------|
+| Node boot, identity (NodeID), events, registry | ✅ |
+| Organism lifecycle + RootCID | ✅ |
+| Memory + CID store | ✅ |
+| Pulse (localized updates) | ✅ |
+| AIP v1 HTTP + SSE | ✅ |
+| Control Studio `/studio/` | ✅ |
+| Policy engine + audit + optional API token | ✅ |
+| Execution (builtin + WASM) / inference interfaces | ✅ |
+| Network fabric + replicate / recover (tests) | ✅ |
+| E2E checklist `tests/e2e` | ✅ |
 
 ---
 
 ## Quick start
 
 ```bash
+export GOPROXY=https://proxy.golang.org,direct
+export GOTOOLCHAIN=go1.25.0
+
+git clone https://github.com/yecharlot/PrismaTec-Core.git
 cd PrismaTec-Core
 
-# Run tests
 go test ./...
-
-# Start a local node (persists identity under ~/.prismatec/node or PRISMATEC_DATA_DIR)
 go run ./cmd/prismatec node start
-
-# Show identity without starting
-go run ./cmd/prismatec node info
 ```
 
-Environment:
+Open **http://127.0.0.1:8080/studio/**
 
-| Variable | Meaning |
-|----------|---------|
-| `PRISMATEC_DATA_DIR` | Directory for identity and local state |
-| `PRISMATEC_NODE_NAME` | Human-readable node name |
+```bash
+go run ./cmd/prismatec demo e2e
+go test ./tests/e2e/ -v
+```
+
+**Full usage guide:** [docs/USAGE.md](docs/USAGE.md)  
+**Security:** [docs/SECURITY.md](docs/SECURITY.md)  
+**Handoff for contributors/AI:** [docs/HANDOFF.md](docs/HANDOFF.md)
 
 ---
 
-## Architecture (summary)
+## Architecture (one glance)
 
 ```
-PRISMATEC CORE
-      │
-  IDENTITY · ORGANISMS · EVENTS · MEMORY · CAPABILITIES
-  POLICY · EXECUTION · NETWORK · PROVENANCE · PULSE
-      │
-     AIP
-      │
-  Alset JS / External clients
+IDENTITY + STATE + MEMORY + CAPABILITY + POLICY
++ EXECUTION + NETWORK + PROVENANCE + PULSE + INTERFACE
+                    │
+              Digital Organism
+                    │
+                   AIP
+                    │
+         Studio / JS / external clients
 ```
-
-See `docs/` for full audit, architecture map, migration plan and ADRs.
-
----
-
-## Identities (must stay separate)
 
 | Identity | Meaning |
 |----------|---------|
-| **RootCID** | Content / organism definition identity |
-| **NodeID** | Persistent cryptographic identity of the host node |
-| **PeerID** | Transport identity (libp2p) — Phase 10+ |
+| **RootCID** | Content / definition |
+| **NodeID** | Host (Ed25519, persisted) |
+| **PeerID** | Transport (future libp2p adapter) |
 
 ---
 
-## Origins
+## Environment
 
-PrismaTec Core unifies the architectural core of:
+| Variable | Meaning |
+|----------|---------|
+| `PRISMATEC_DATA_DIR` | State, identity, audit log |
+| `PRISMATEC_NODE_NAME` | Display name |
+| `PRISMATEC_AIP_ADDR` | Listen address (default `:8080`) |
+| `PRISMATEC_AIP_TOKEN` | If set, protects `/aip/*` |
 
-- [AlsetOS](https://github.com/yecharlot/AlsetOS) — distributed runtime / organism fabric
-- [PrismaTec](https://github.com/yecharlot/PrismaTec) — intelligence, memory, coordination
-- [Alset-JS-Runtime](https://github.com/yecharlot/Alset-JS-Runtime) — human/machine experience (AIP, Pulse)
+---
 
-Original repositories are **not** destroyed; this is an evolution.
+## Related repositories (unchanged)
+
+- [AlsetOS](https://github.com/yecharlot/AlsetOS) — distributed execution heritage  
+- [Prismatec](https://github.com/yecharlot/Prismatec) — intelligence / edge heritage  
+- [Alset-JS-Runtime](https://github.com/yecharlot/Alset-JS-Runtime) — interaction / pulse UI heritage  
+
+PrismaTec Core is an **evolution**, not a destructive merge of those repos.

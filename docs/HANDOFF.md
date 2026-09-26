@@ -1,6 +1,6 @@
 # HANDOFF — PrismaTec Core
 
-**Última actualización:** 2026-09-26 (Fase 14 E2E demo completada)  
+**Última actualización:** 2026-09-26 (Fase 15 Security + USAGE docs completada)  
 **Repositorio local:** `/home/workdir/artifacts/PrismaTec-Core`  
 **Módulo Go:** `github.com/yecharlot/PrismaTec-Core`  
 **Repo objetivo GitHub:** `github.com/yecharlot/PrismaTec-Core` (aún no publicado necesariamente)
@@ -78,7 +78,8 @@ Leer primero:
 | 8–12 | Execution, Inference, Network, Replication, Recovery | ✅ | `docs/PHASES_8_TO_12.md` |
 | 13 | Control Studio | ✅ | `docs/PHASE13_STUDIO.md` |
 | 14 | E2E demo checklist | ✅ | `docs/PHASE14_E2E.md` |
-| 15 | Security hardening | ⏳ | `docs/MIGRATION.md` |
+| 15 | Security hardening | ✅ | `docs/PHASE15_SECURITY.md` |
+| 16 | Docs / investor package | ⏳ | USAGE+SECURITY done; package optional |
 
 ### Estructura del repo
 

@@ -136,3 +136,17 @@ Cerrar el criterio de éxito automatizado.
 
 ### Guía de acción
 go test ./tests/e2e/ -v ; push GitHub; Phase 15 security.
+
+
+## 2026-09-26 — Fase 15 Security + USAGE
+
+### Qué se hizo
+- core/audit, core/security
+- AIP token + validation + audit API
+- docs/USAGE.md, SECURITY.md, PHASE15, README
+
+### Por qué
+Usabilidad y hardening mínimo antes de package comercial.
+
+### Guía de acción
+Leer docs/USAGE.md; Phase 16 opcional (investor deck).

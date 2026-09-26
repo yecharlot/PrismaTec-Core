@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/yecharlot/PrismaTec-Core/core"
+	"github.com/yecharlot/PrismaTec-Core/core/audit"
+	"github.com/yecharlot/PrismaTec-Core/core/security"
 	"github.com/yecharlot/PrismaTec-Core/core/organism"
 	"github.com/yecharlot/PrismaTec-Core/core/policy"
 	"github.com/yecharlot/PrismaTec-Core/runtime/execution"
@@ -33,6 +35,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/aip/v1/pulse", s.handlePulseSSE)
 	mux.HandleFunc("/aip/v1/pulses", s.handlePulsesRecent)
 	mux.HandleFunc("/aip/v1/commands", s.handleCommands)
+	mux.HandleFunc("/aip/v1/audit", s.handleAudit)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
@@ -57,14 +60,37 @@ func (s *Server) Handler() http.Handler {
 		}
 		http.NotFound(w, r)
 	})
-	return withCORS(mux)
+	return withCORS(withAIPAuth(mux, s))
+}
+
+
+// withAIPAuth enforces PRISMATEC_AIP_TOKEN on /aip/* when set (Phase 15).
+func withAIPAuth(next http.Handler, s *Server) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.URL.Path, "/aip/") {
+			next.ServeHTTP(w, r)
+			return
+		}
+		err := security.CheckAIPToken(r.Header.Get("Authorization"), r.Header.Get("X-PrismaTec-Token"))
+		if err != nil {
+			if s.Node != nil && s.Node.Audit() != nil {
+				s.Node.Audit().Record(audit.Event{
+					Type: "auth.denied", OK: false, Detail: err.Error(),
+					Meta: map[string]any{"path": r.URL.Path},
+				})
+			}
+			writeJSON(w, http.StatusUnauthorized, ErrorBody{AIP: Version, Error: err.Error()})
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-PrismaTec-Token")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -227,6 +253,20 @@ func (s *Server) handlePulseSSE(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+
+func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, ErrorBody{AIP: Version, Error: "method not allowed"})
+		return
+	}
+	n := 50
+	var events []audit.Event
+	if s.Node != nil && s.Node.Audit() != nil {
+		events = s.Node.Audit().Recent(n)
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"aip": Version, "events": events})
+}
+
 func (s *Server) handleCommands(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeJSON(w, http.StatusMethodNotAllowed, ErrorBody{AIP: Version, Error: "method not allowed"})
@@ -261,12 +301,23 @@ func (s *Server) execCommand(cmd Command) CommandResult {
 		}
 		return ""
 	}
+	if err := security.ValidateAction(cmd.Action); err != nil {
+		return CommandResult{AIP: Version, OK: false, Error: err.Error()}
+	}
+	auditCmd := func(ok bool, oid, detail string) {
+		if s.Node != nil && s.Node.Audit() != nil {
+			s.Node.Audit().Record(audit.Event{
+				Type: "command", Action: cmd.Action, OrganismID: oid, OK: ok, Detail: detail,
+			})
+		}
+	}
 
 	switch cmd.Action {
 	case "create":
 		name := str("name")
-		if name == "" {
-			return CommandResult{AIP: Version, OK: false, Error: "params.name required"}
+		if err := security.ValidateName(name); err != nil {
+			auditCmd(false, "", err.Error())
+			return CommandResult{AIP: Version, OK: false, Error: err.Error()}
 		}
 		caps := []organism.Capability{"memory.read"}
 		if raw, ok := params["capabilities"].([]any); ok {
@@ -282,6 +333,7 @@ func (s *Server) execCommand(cmd Command) CommandResult {
 			return CommandResult{AIP: Version, OK: false, Error: err.Error()}
 		}
 		v := viewOf(o)
+		auditCmd(true, o.ID, "created")
 		return CommandResult{AIP: Version, OK: true, Organism: &v}
 
 	case "start":
@@ -312,8 +364,17 @@ func (s *Server) execCommand(cmd Command) CommandResult {
 		id := str("id")
 		key := str("key")
 		val := str("value")
-		if id == "" || key == "" {
-			return CommandResult{AIP: Version, OK: false, Error: "params.id and params.key required"}
+		if err := security.ValidateID(id); err != nil {
+			auditCmd(false, id, err.Error())
+			return CommandResult{AIP: Version, OK: false, Error: err.Error()}
+		}
+		if err := security.ValidateMemoryKey(key); err != nil {
+			auditCmd(false, id, err.Error())
+			return CommandResult{AIP: Version, OK: false, Error: err.Error()}
+		}
+		if err := security.ValidateMemoryValue(val); err != nil {
+			auditCmd(false, id, err.Error())
+			return CommandResult{AIP: Version, OK: false, Error: err.Error()}
 		}
 		o, err := mgr.PutMemory(id, key, val)
 		if err != nil {

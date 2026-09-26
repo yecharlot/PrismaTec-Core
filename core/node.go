@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/yecharlot/PrismaTec-Core/core/audit"
 	"github.com/yecharlot/PrismaTec-Core/core/events"
 	"github.com/yecharlot/PrismaTec-Core/core/identity"
 	"github.com/yecharlot/PrismaTec-Core/core/organism"
@@ -52,6 +53,7 @@ type Node struct {
 	bus       *events.Bus
 	organisms *organism.Manager
 	pulses    *pulse.Hub
+	audit     *audit.Log
 	status    Status
 	started   time.Time
 	mu        sync.RWMutex
@@ -107,8 +109,14 @@ func NewNode(cfg Config) (*Node, error) {
 		bus:       bus,
 		organisms: orgMgr,
 		pulses:    hub,
+		audit:     audit.New(cfg.DataDir),
 		status:    StatusStopped,
 	}, nil
+}
+
+// Audit returns the security audit log (Phase 15).
+func (n *Node) Audit() *audit.Log {
+	return n.audit
 }
 
 // ID returns the persistent NodeID.
