@@ -176,8 +176,11 @@ func (s *Service) RecoverIfPrimaryDown(orgID string) (RecoverResult, error) {
 		return RecoverResult{OrganismID: orgID, Success: false, Reason: "missing RootCID"}, fmt.Errorf("invalid snapshot")
 	}
 
+	prevEpoch := cp.Organism.Placement.Epoch
 	cp.Primary = s.nodeID
+	cp.Organism.Placement.FencedFrom = old
 	cp.Organism.Placement.Primary = s.nodeID
+	cp.Organism.Placement.Epoch = prevEpoch + 1
 	cp.Organism.Status = organism.StatusRunning
 	cp.Organism.CurrentAction = "recovered"
 	cp.UpdatedAt = time.Now().UTC()
@@ -198,4 +201,17 @@ func (s *Service) RecoverIfPrimaryDown(orgID string) (RecoverResult, error) {
 		Success:    true,
 		Reason:     "promoted replica after primary offline",
 	}, nil
+}
+
+
+// CanActAsPrimary reports whether a node claiming leadership is not fenced out.
+// candidateEpoch is the epoch the caller believes it holds; localEpoch is authoritative on this node.
+func CanActAsPrimary(localEpoch, candidateEpoch int64, localPrimary, candidateNode string) bool {
+	if candidateEpoch < localEpoch {
+		return false
+	}
+	if candidateEpoch == localEpoch && localPrimary != "" && candidateNode != localPrimary {
+		return false
+	}
+	return true
 }

@@ -58,10 +58,15 @@ type Provenance struct {
 	Note      string `json:"note,omitempty"`
 }
 
-// Placement describes where the organism runs (replication in Phase 11–12).
+// Placement describes where the organism runs (replication + fencing).
+// Epoch is monotonic: only a successful recovery/promotion may increase it.
+// A node with a lower epoch is a stale primary and must not act as leader (anti dual-primary).
 type Placement struct {
 	Primary  string   `json:"primary,omitempty"`
 	Replicas []string `json:"replicas,omitempty"`
+	Epoch    int64    `json:"epoch,omitempty"`
+	// FencedFrom is the previous primary demoted by recovery (audit/fencing trail).
+	FencedFrom string `json:"fenced_from,omitempty"`
 }
 
 // RuntimeSpec declares how the organism may execute (WASM/Lisp/Agent later).
@@ -158,6 +163,7 @@ func New(opts CreateOptions) (*Organism, error) {
 		},
 		Placement: Placement{
 			Primary: opts.NodeID,
+			Epoch:   1,
 		},
 		CreatedAt: now,
 		UpdatedAt: now,

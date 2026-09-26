@@ -211,8 +211,22 @@ func (m *Manager) Adopt(src *Organism, promote bool, note string) (*Organism, er
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	cp := src.Snapshot()
+	if existing, ok := m.byID[cp.ID]; ok {
+		// Fencing: never accept a stale epoch over a newer local authority.
+		if cp.Placement.Epoch < existing.Placement.Epoch {
+			return nil, fmt.Errorf("fenced: stale epoch %d < local %d (anti dual-primary)", cp.Placement.Epoch, existing.Placement.Epoch)
+		}
+		if promote && cp.Placement.Epoch == existing.Placement.Epoch &&
+			existing.Placement.Primary != "" && existing.Placement.Primary != m.nodeID &&
+			existing.Status == StatusRunning {
+			return nil, fmt.Errorf("fenced: dual-primary rejected (epoch %d primary %s)", existing.Placement.Epoch, existing.Placement.Primary)
+		}
+	}
 	if promote {
 		cp.Placement.Primary = m.nodeID
+		if cp.Placement.Epoch < 1 {
+			cp.Placement.Epoch = 1
+		}
 		cp.Status = StatusRunning
 		cp.CurrentAction = "recovered"
 	} else {
@@ -236,7 +250,30 @@ func (m *Manager) Adopt(src *Organism, promote bool, note string) (*Organism, er
 	return cp.Snapshot(), nil
 }
 
+// IsLeader reports whether this node is the authoritative primary for orgID at its epoch.
+func (m *Manager) IsLeader(id string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	org, err := m.getLocked(id)
+	if err != nil {
+		return false
+	}
+	return org.Placement.Primary == m.nodeID && org.Status == StatusRunning
+}
+
+// EpochOf returns the fencing epoch for an organism (0 if missing).
+func (m *Manager) EpochOf(id string) int64 {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	org, err := m.getLocked(id)
+	if err != nil {
+		return 0
+	}
+	return org.Placement.Epoch
+}
+
 // SetReplicas updates placement.replicas on the primary.
+
 func (m *Manager) SetReplicas(id string, replicas []string) (*Organism, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

@@ -252,3 +252,60 @@ That is consistent with “advanced prototype / distributed runtime in progress,
 
 > PrismaTec Core demonstrates **TCP multi-node replication with memory integrity, recovery of primary onto B, post-recover execution, and persistence across B restart** under automated tests. It still does **not** claim hard-kill chaos, split-brain fencing, or production continuity SLOs.
 
+
+---
+
+## 9. Continuity milestone — process SIGKILL + anti dual-primary
+
+**UTC:** 2026-09-26T18:24:28Z  
+**Command:** `go test ./... -count=1 -timeout 180s` → **0 FAIL**
+
+### New capabilities in code
+
+| Feature | Location |
+|---------|----------|
+| `Placement.Epoch` monotonic fencing | `core/organism` |
+| Epoch +1 on recovery; `FencedFrom` | `core/replication.RecoverIfPrimaryDown` |
+| Reject stale epoch / dual-primary on `Adopt` | `core/organism.Manager.Adopt` |
+| `TestE2E_AntiDualPrimary` | **PASS** |
+| `TestE2E_ProcessKillContinuity` | **PASS (~3.6–16s)** |
+
+### `TestE2E_ProcessKillContinuity` (what it actually does)
+
+1. `go build` real `prismatec` binary  
+2. Starts **two OS processes** (`node start`) with distinct DataDir, NodeID, TCP ports, AIP ports  
+3. Creates organism + memory on A via **HTTP AIP**  
+4. Replicates A→B over **TCP** via AIP `replicate`  
+5. **`Process.Kill()` / SIGKILL on A** (not graceful Stop)  
+6. B **recover** via AIP  
+7. Asserts RootCID preserved, status running  
+8. **execute ping** on B after recovery via AIP  
+
+Log example (from a successful run):
+
+```text
+process continuity OK org=kill-continuity-... root=rootcid:... recover=map[ok:true ...]
+--- PASS: TestE2E_ProcessKillContinuity
+```
+
+### Updated 10-criteria score
+
+| # | Criterion | Status now |
+|---|-----------|------------|
+| 1 | Separate processes + NodeIDs | **PROVEN** (OS processes) |
+| 2 | Create + RootCID + state | **PROVEN** |
+| 3 | TCP replica integrity | **PROVEN** |
+| 4 | Provenance | Partial |
+| 5 | Abrupt termination | **PROVEN** (SIGKILL) |
+| 6 | Anti dual-primary | **PROVEN** (epoch fencing test) |
+| 7 | Execute after recover | **PROVEN** |
+| 8 | Persist after restart | **PROVEN** (MultiNodeTCP B restart) |
+| 9 | Automated | **PROVEN** (no RPO/RTO SLOs yet) |
+| 10 | Studio observes | Still manual |
+
+**~8/10 proven in automation; partition/network-split chaos and Studio CI still open.**
+
+### Defensible claim (updated)
+
+> PrismaTec Core demonstrates **hard-kill continuity** (SIGKILL of primary OS process), **TCP multi-node replicate/recover**, **post-recover execution**, and **epoch-based anti dual-primary fencing** under automated tests. Remaining gaps: network partition simulation, RPO/RTO SLOs, Studio-observed failover in CI.
+
