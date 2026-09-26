@@ -44,3 +44,7 @@ go run ./cmd/prismatec node start   # with NETWORK peers configured
 | Partition-safe dual-primary | **Not Core yet** (see AUTHORITY.md) |
 
 Implement the thin HTTP/CLI glue in a follow-up; Core already supplies create/memory/replicate/recover/policy.
+
+## Implemented test
+
+See `runtime/mind/workorder_test.go` — full tick with policy deny and decision persistence.
