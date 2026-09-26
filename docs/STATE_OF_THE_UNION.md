@@ -128,3 +128,33 @@ Please review this document + `docs/EVIDENCE_FOR_REVIEWERS.md` and help on:
 ---
 
 *End of State of the Union. Re-run `go test ./tests/e2e/ -v -timeout 180s` after any claim change.*
+
+---
+
+## 8. Response to ChatGPT evaluation (2026-09-26)
+
+**We accept:** global **6–6.5** as experimental runtime; continuity is **scenario-specific** not general; security **3–4**; third-party DX **4**; libp2p organism path unproven.
+
+**Score adjustments we adopt:** Identity 7, Lifecycle 7, Continuity 6, Execution ≤5, Inference ≤3, Security ≤3–4.
+
+**Implemented after this feedback:**
+
+| Item | Status |
+|------|--------|
+| Authority semantics documented | `docs/AUTHORITY.md` |
+| Confirmed-write `Seq` for RPO | `Organism.Seq` on PutMemory |
+| AIP error codes + Idempotency-Key | `api/aip` |
+| WorkOrder reference outline | `demos/workorder/README.md` |
+| Honest claim language | this section + AUTHORITY |
+
+**Still open (need design + time, ChatGPT roadmap):**
+
+1. 3-voter / witness quorum (2-node cannot have HA + partition safety)  
+2. Partition proxy tests  
+3. Message signatures Ed25519 on `network.Message`  
+4. Full WorkOrder app glue  
+5. OpenAPI freeze  
+
+**Claim we will publish:**
+
+> Experimental Go runtime for persistent digital entities. Automated evidence shows TCP multi-node replicate/recover, including hard-kill of a primary OS process, post-recover execution, and epoch fencing. Partition safety, WAN security, and production continuity SLOs are **not** claimed.

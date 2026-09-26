@@ -40,6 +40,8 @@ type OrganismView struct {
 	Episodes      int               `json:"episodes"`
 	SemanticKeys  int               `json:"semantic_keys"`
 	CurrentAction string            `json:"current_action,omitempty"`
+	Seq           int64             `json:"seq,omitempty"`
+	Epoch         int64             `json:"epoch,omitempty"`
 	UpdatedAt     time.Time         `json:"updated_at"`
 }
 
@@ -63,11 +65,27 @@ type Command struct {
 
 // CommandResult is the response to a Command.
 type CommandResult struct {
-	AIP     string         `json:"aip"`
-	OK      bool           `json:"ok"`
-	Error   string         `json:"error,omitempty"`
+	AIP      string         `json:"aip"`
+	OK       bool           `json:"ok"`
+	Code     string         `json:"code,omitempty"` // INVALID_ARGUMENT, STALE_EPOCH, ...
+	Error    string         `json:"error,omitempty"`
 	Organism *OrganismView `json:"organism,omitempty"`
+	Seq      int64          `json:"seq,omitempty"`
 }
+
+// Standard AIP error codes (contract freeze v1 subset).
+const (
+	CodeOK                 = "OK"
+	CodeInvalidArgument    = "INVALID_ARGUMENT"
+	CodeUnauthenticated    = "UNAUTHENTICATED"
+	CodeForbidden          = "FORBIDDEN"
+	CodeNotFound           = "ORGANISM_NOT_FOUND"
+	CodeConflict           = "CONFLICT"
+	CodeStaleEpoch         = "STALE_EPOCH"
+	CodeIdempotencyConflict = "IDEMPOTENCY_CONFLICT"
+	CodeInternal           = "INTERNAL"
+	CodeUnavailable        = "UNAVAILABLE"
+)
 
 // ErrorBody is a standard JSON error.
 type ErrorBody struct {

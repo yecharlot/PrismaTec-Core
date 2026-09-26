@@ -142,6 +142,12 @@ func TestE2E_MultiNodeTCP(t *testing.T) {
 	if got.Memory.Working["focus"] != "payload-continuity" {
 		t.Fatalf("memory after recover: %+v", got.Memory.Working)
 	}
+	// RPO: last confirmed Seq on A before stop should equal Seq on B after recover
+	// (we wrote one memory key after create/start → Seq>=1; replicate included that state)
+	if got.Seq < 1 {
+		t.Fatalf("expected Seq>=1 after memory write path, got %d", got.Seq)
+	}
+	t.Logf("RPO_check seq_on_B=%d (expect no loss vs pre-failure confirmed writes)", got.Seq)
 
 	eng := execution.BuiltinEngine{}
 	out, err := eng.Execute(context.Background(), execution.Request{

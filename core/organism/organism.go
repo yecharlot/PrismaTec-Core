@@ -97,6 +97,8 @@ type Organism struct {
 	Provenance   Provenance   `json:"provenance,omitempty"`
 	Placement    Placement    `json:"placement,omitempty"`
 	CurrentAction string      `json:"current_action,omitempty"`
+	// Seq is a monotonic confirmed-write counter (RPO measurement).
+	Seq          int64        `json:"seq,omitempty"`
 	CreatedAt    time.Time    `json:"created_at"`
 	UpdatedAt    time.Time    `json:"updated_at"`
 }

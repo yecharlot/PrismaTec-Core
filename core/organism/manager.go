@@ -346,12 +346,13 @@ func (m *Manager) PutMemory(id, key, value string) (*Organism, error) {
 		org.Memory.Working = map[string]string{}
 	}
 	org.Memory.Working[key] = value
+	org.Seq++
 	org.Touch(m.nodeID, "memory.working")
 	if err := m.persistLocked(org); err != nil {
 		return nil, err
 	}
 	m.syncRegistry(org)
-	m.emit("memory.updated", org, map[string]any{"kind": "working", "key": key})
+	m.emit("memory.updated", org, map[string]any{"kind": "working", "key": key, "seq": org.Seq})
 	return org.Snapshot(), nil
 }
 

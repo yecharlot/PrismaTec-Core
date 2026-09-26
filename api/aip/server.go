@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/yecharlot/PrismaTec-Core/core"
@@ -24,6 +25,8 @@ import (
 type Server struct {
 	Node *core.Node
 	Addr string // e.g. ":8080"
+	idemMu sync.Mutex
+	idem   map[string]CommandResult // key -> result
 }
 
 // Handler returns the HTTP mux for AIP v1.
@@ -150,6 +153,8 @@ func viewOf(o *organism.Organism) OrganismView {
 		Episodes:      len(o.Memory.Episodic),
 		SemanticKeys:  len(o.Memory.Semantic),
 		CurrentAction: o.CurrentAction,
+		Seq:           o.Seq,
+		Epoch:         o.Placement.Epoch,
 		UpdatedAt:     o.UpdatedAt,
 	}
 }
@@ -274,17 +279,61 @@ func (s *Server) handleCommands(w http.ResponseWriter, r *http.Request) {
 	}
 	var cmd Command
 	if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
-		writeJSON(w, http.StatusBadRequest, CommandResult{AIP: Version, OK: false, Error: "invalid json"})
+		writeJSON(w, http.StatusBadRequest, CommandResult{AIP: Version, OK: false, Code: CodeInvalidArgument, Error: "invalid json"})
 		return
 	}
 	if cmd.AIP != "" && cmd.AIP != Version {
-		writeJSON(w, http.StatusBadRequest, CommandResult{AIP: Version, OK: false, Error: "unsupported aip version"})
+		writeJSON(w, http.StatusBadRequest, CommandResult{AIP: Version, OK: false, Code: CodeInvalidArgument, Error: "unsupported aip version"})
 		return
 	}
+	idemKey := r.Header.Get("Idempotency-Key")
+	if idemKey != "" {
+		s.idemMu.Lock()
+		if s.idem == nil {
+			s.idem = map[string]CommandResult{}
+		}
+		if prev, ok := s.idem[idemKey]; ok {
+			s.idemMu.Unlock()
+			status := http.StatusOK
+			if !prev.OK {
+				status = http.StatusConflict
+			}
+			writeJSON(w, status, prev)
+			return
+		}
+		s.idemMu.Unlock()
+	}
 	res := s.execCommand(cmd)
+	if res.Code == "" {
+		if res.OK {
+			res.Code = CodeOK
+		} else {
+			res.Code = CodeInvalidArgument
+		}
+	}
+	if idemKey != "" {
+		s.idemMu.Lock()
+		if s.idem == nil {
+			s.idem = map[string]CommandResult{}
+		}
+		s.idem[idemKey] = res
+		s.idemMu.Unlock()
+	}
 	status := http.StatusOK
 	if !res.OK {
 		status = http.StatusBadRequest
+		if res.Code == CodeNotFound {
+			status = http.StatusNotFound
+		}
+		if res.Code == CodeStaleEpoch || res.Code == CodeConflict || res.Code == CodeIdempotencyConflict {
+			status = http.StatusConflict
+		}
+		if res.Code == CodeUnauthenticated {
+			status = http.StatusUnauthorized
+		}
+		if res.Code == CodeForbidden {
+			status = http.StatusForbidden
+		}
 	}
 	writeJSON(w, status, res)
 }
@@ -302,7 +351,7 @@ func (s *Server) execCommand(cmd Command) CommandResult {
 		return ""
 	}
 	if err := security.ValidateAction(cmd.Action); err != nil {
-		return CommandResult{AIP: Version, OK: false, Error: err.Error()}
+		return CommandResult{AIP: Version, OK: false, Code: CodeInvalidArgument, Error: err.Error()}
 	}
 	auditCmd := func(ok bool, oid, detail string) {
 		if s.Node != nil && s.Node.Audit() != nil {
@@ -378,10 +427,17 @@ func (s *Server) execCommand(cmd Command) CommandResult {
 		}
 		o, err := mgr.PutMemory(id, key, val)
 		if err != nil {
-			return CommandResult{AIP: Version, OK: false, Error: err.Error()}
+			code := CodeInvalidArgument
+			if strings.Contains(err.Error(), "not found") {
+				code = CodeNotFound
+			}
+			if strings.Contains(err.Error(), "policy") || strings.Contains(err.Error(), "denied") {
+				code = CodeForbidden
+			}
+			return CommandResult{AIP: Version, OK: false, Code: code, Error: err.Error()}
 		}
 		v := viewOf(o)
-		return CommandResult{AIP: Version, OK: true, Organism: &v}
+		return CommandResult{AIP: Version, OK: true, Code: CodeOK, Organism: &v, Seq: o.Seq}
 
 	case "execute":
 		id := str("id")
@@ -435,7 +491,11 @@ func (s *Server) execCommand(cmd Command) CommandResult {
 		}
 		detail := res.Reason
 		if !res.Success {
-			return CommandResult{AIP: Version, OK: false, Error: detail}
+			code := CodeConflict
+			if strings.Contains(detail, "online") {
+				code = CodeConflict
+			}
+			return CommandResult{AIP: Version, OK: false, Code: code, Error: detail}
 		}
 		o, _ := mgr.Get(id)
 		if o != nil {
