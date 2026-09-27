@@ -344,4 +344,4 @@ Mercados futuros (solo diseño, no implementación): agents, pharma, industrial,
 ---
 
 **Fin del handoff.**  
-Fase 3 completada. Siguiente: Fase 4 Events + Pulse. Actualizar este HANDOFF al cerrar cada fase.
+Core 0–15 estable. Siguiente: Phase 16 verticales (WorkOrder → puente AbacoPhy). Ver `docs/PHASE16_VERTICAL.md`.
