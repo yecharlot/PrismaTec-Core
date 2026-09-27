@@ -50,4 +50,4 @@ go test ./...   # baseline must stay green
 | 5 Persist decision | done (semantic key) |
 | 6 Optional LLM | done (echo annotation) |
 | 7 WorkOrder test | done |
-| 8 Cognitive replication | **not done** — no protocol change |
+| 8 Cognitive replication | **partial** — decision in semantic memory survives Snapshot/Adopt (no new wire protocol) |
