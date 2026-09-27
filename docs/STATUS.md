@@ -1,6 +1,6 @@
 # STATUS — Qué tenemos vs propósito final
 
-**Actualizado:** 2026-09-26 (cierre multi-nodo TCP + cumplimiento manifiesto)
+**Actualizado:** 2026-09-27 (Phase 16 vertical WorkOrder documentado; siguiente = adaptadores de producto)
 
 ## Propósito final (manifiesto)
 
@@ -64,15 +64,17 @@ module: github.com/yecharlot/PrismaTec-Core  (go 1.25.0)
 | **13–14** | Studio + demo E2E | Observabilidad visual |
 | **15–16** | Security hardening + docs investor | Solo con demos reales |
 
-### Gap crítico hacia Demo 1
+### Gap de producto (post Core 0–15)
 
 ```
-[x] Core organism + memory + pulse (in-process)
-[x] AIP transport from long-running node (HTTP + SSE)
-[ ] Alset-JS receives pulse and updates one PIN
+[x] Core organism + memory + pulse + AIP + Studio
+[x] Multi-nodo TCP / libp2p + recover E2E
+[x] WorkOrder reference (`prismatec workorder run`)
+[ ] Vertical real (p.ej. puente AbacoPhy ↔ organismo)
+[ ] Panel Studio específico del vertical con datos AIP
 ```
 
-**Recomendación:** Fase 6 — cliente JS mínimo contra `http://localhost:8080/aip/v1/*`.
+**Recomendación:** Phase 16+ — adaptadores de aplicación **fuera** del núcleo; ver `docs/PHASE16_VERTICAL.md`.
 
 ---
 

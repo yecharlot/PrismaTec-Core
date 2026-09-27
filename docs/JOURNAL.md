@@ -184,3 +184,18 @@ PRISMATEC_TRANSPORT=libp2p; go test ./network/ -run LibP2P -v
 
 ## 2026-09-26 — Evidence pack for reviewers
 Ran go test ./... green at 976201b; wrote docs/EVIDENCE_FOR_REVIEWERS.md for ChatGPT/auditors.
+
+
+## 2026-09-27 — Phase 16 vertical baseline
+
+### Qué se hizo
+- Documentó PHASE16_VERTICAL.md (WorkOrder como app de referencia)
+- Alineó STATUS/HANDOFF: Core 0–15 hecho; gap = verticales de producto
+- Verificación: workorder test + CLI ya existen
+
+### Por qué
+El Core ya no es el cuello de botella; el mercado necesita apps reales sobre AIP.
+
+### Guía de acción
+go test ./runtime/mind/ -run WorkOrder -v
+go run ./cmd/prismatec workorder run
