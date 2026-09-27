@@ -1,3 +1,5 @@
+**Version:** 0.3.0 — lab-operational (Mind + continuity + WorkOrder)
+
 # STATUS — Qué tenemos vs propósito final
 
 **Actualizado:** 2026-09-27 (Phase 16 vertical WorkOrder documentado; siguiente = adaptadores de producto)

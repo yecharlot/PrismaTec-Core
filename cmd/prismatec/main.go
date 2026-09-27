@@ -49,7 +49,7 @@ func main() {
 	case "workorder":
 		runWorkOrder(os.Args[2:])
 	case "version":
-		fmt.Println("prismatec-core 0.2.0-dev (phase-14-e2e)")
+		fmt.Println("prismatec-core 0.3.0")
 	case "help", "-h", "--help":
 		printUsage()
 	default:
