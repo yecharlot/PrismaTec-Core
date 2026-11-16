@@ -51,13 +51,13 @@ Leer primero:
 7. **REAL SYSTEM > DEMO FALSA > MARKETING.**
 8. Ciclo por fase: `IMPLEMENT → BUILD → TEST → RUN → VERIFY → DOCUMENT`.
 9. No destruir los repos originales (AlsetOS, PrismaTec, Alset-JS-Runtime).
-10. Si algo puede esperar, **no se implementa todavía**.
+10. Si algo puede esperar, **no** se implementa todavía.
 
 ### Criterio de éxito MVP (recordatorio)
 
-1. Create organism → Pulse real → UI Alset-JS actualiza con datos del Core  
-2. Move organism Node A → Node B  
-3. Failure recovery con réplica  
+1. Create organism → Pulse real → UI Alset-JS actualiza con datos del Core
+2. Move organism Node A → Node B
+3. Failure recovery con réplica
 
 ---
 
@@ -66,7 +66,7 @@ Leer primero:
 ### Fases completadas
 
 | Fase | Nombre | Estado | Doc |
-|------|--------|--------|-----|
+|---|---|---|---|
 | 0 | Auditoría | ✅ | `docs/AUDIT.md` + mapas |
 | 1 | Core Boot | ✅ | `docs/PHASE1_BOOT.md` |
 | 2 | Organism | ✅ | `docs/PHASE2_ORGANISM.md` |
@@ -79,269 +79,105 @@ Leer primero:
 | 13 | Control Studio | ✅ | `docs/PHASE13_STUDIO.md` |
 | 14 | E2E demo checklist | ✅ | `docs/PHASE14_E2E.md` |
 | 15 | Security hardening | ✅ | `docs/PHASE15_SECURITY.md` |
-| 16 | Docs / investor package | ⏳ | USAGE+SECURITY done; package optional |
+| 16 | Vertical de referencia | Parcial/documentado | `docs/PHASE16_VERTICAL.md` |
 
 ### Estructura del repo
 
 ```
 PrismaTec-Core/
-├── cmd/prismatec/main.go          # CLI: node + organism
+├── cmd/prismatec/
 ├── core/
-│   ├── node.go                    # Node bootstrap + Organisms()
-│   ├── node_test.go
-│   ├── identity/                  # NodeID Ed25519 (LoadOrCreate, Sign, Verify)
-│   ├── events/                    # EventBus in-process
-│   ├── registry/                  # OrganismRecord registry
-│   └── organism/                  # Modelo + Manager + lifecycle + memory + persist JSON
-├── storage/cid/                   # Content-addressed blocks (cid1: + LocalStore)
-├── docs/                          # AUDIT, ARCHITECTURE, MIGRATION, ADRs, HANDOFF, PHASEx
-├── go.mod                         # module github.com/yecharlot/PrismaTec-Core  (Go 1.25.0)
-├── core/pulse/                    # Pulse hub (Phase 4)
-├── api/aip/                       # AIP v1 HTTP+SSE (Phase 5)
-├── README.md
-└── (dirs preparados: network, runtime, api, adapters, sdk, …)
+│   ├── identity/
+│   ├── events/
+│   ├── registry/
+│   └── organism/
+├── storage/cid/
+├── api/aip/
+├── network/
+├── runtime/
+├── docs/
+└── tests/
 ```
 
-### Qué funciona hoy (verificado)
+La estructura real debe verificarse contra HEAD antes de asumir que este mapa está completo.
+
+### Verificación
+
+No asumir que una prueba histórica representa el estado actual. Antes de modificar código:
 
 ```bash
-cd /home/workdir/artifacts/PrismaTec-Core
 go test ./...
-# ok: core, identity, events, registry, organism
-
-export PRISMATEC_DATA_DIR=/tmp/prismatec-phase2   # o cualquier dir
-
-go run ./cmd/prismatec version
-go run ./cmd/prismatec node info
-go run ./cmd/prismatec organism create research-agent-01 \
-  --cap memory.read --cap inference --deny database.write
-go run ./cmd/prismatec organism list
-go run ./cmd/prismatec organism start research-agent-01
-go run ./cmd/prismatec organism inspect research-agent-01
-go run ./cmd/prismatec organism stop research-agent-01
+go test -race ./...
+go vet ./...
 ```
 
-- Identidad de nodo **persistente** en `{DataDir}/identity.json`
-- Organismos **persistentes** en `{DataDir}/organisms/{id}.json`
-- RootCID **determinista** desde manifiesto (SHA-256, prefijo `rootcid:`)
-- Eventos emitidos en create/start/stop
-- UI de terminal tipo “panel” con datos **reales** del Core
-
-### Modelo Organism actual (resumen)
-
-```go
-// core/organism/organism.go
-type Organism struct {
-  ID, RootCID, Version, Name string
-  Status Status  // created|ready|running|stopped|error|recovering
-  Capabilities []Capability
-  Policy Policy           // Rules map[string]bool  (mínimo; Phase 7 crece)
-  Memory MemoryRef        // Working map + Episodes int  (Phase 3 amplía)
-  Runtime RuntimeSpec
-  Provenance Provenance
-  Placement Placement     // Primary = NodeID
-  CurrentAction string
-  CreatedAt, UpdatedAt time.Time
-}
-```
-
-`Manager` (`core/organism/manager.go`): Create, Start, Stop, Get, List, SetAction, PutMemory, persistencia, reload, sync registry, emit events.
-
-### CLI actual
-
-```
-prismatec node start|info
-prismatec organism create|list|inspect|start|stop
-prismatec version|help
-```
-
-Env: `PRISMATEC_DATA_DIR`, `PRISMATEC_NODE_NAME`
+Registrar qué comandos se ejecutaron, commit revisado y resultado. No afirmar verificación local si solo se inspeccionó CI o documentación.
 
 ---
 
-## 3. Repos de origen (referencia, no modificar como fuente de verdad del Core)
+## 3. Repos de origen
 
-| Repo | Path local (si clonado) | Aporta al Core |
-|------|-------------------------|----------------|
-| AlsetOS | `/home/workdir/artifacts/AlsetOS` | identity, organism lifecycle, p2p, wasm, rootcid idea, pulse, tests |
-| PrismaTec | `/home/workdir/artifacts/Prismatec-repo` (partial) | CID store, Mind/Gen (apps), Lisp, Cloudflare adapters |
-| Alset-JS-Runtime | `/home/workdir/artifacts/Alset-JS-Runtime` | AIP, Registry UI, Pulse localized, Studio |
+| Repo | Aporta al Core |
+|---|---|
+| AlsetOS | identity, organism lifecycle, p2p, wasm, rootcid idea, pulse, tests |
+| PrismaTec | CID store, Mind/Gen (apps), Lisp, Cloudflare adapters |
+| Alset-JS-Runtime | AIP, Registry UI, Pulse localized, Studio |
 
-**Nota:** El repo GitHub se llama `PrismaTec` (T mayúscula), no `Prismatec`.
-
----
-
-## 4. Qué NO está hecho todavía (no inventar como si existiera)
-
-- [x] Memory tipada (working / episodic / semantic) + CID de artefactos (`cid1:` + sha256 blocks)
-- [ ] CID multihash IPFS real (ipfs/go-cid) — pendiente cuando red de módulos funcione; RootCID sigue `rootcid:`
-- [x] EventBus → Pulse (in-process hub + bridge); transporte red/UI en Fase 5+
-- [ ] AIP v1 + conexión Alset-JS
-- [ ] Policy engine real (WHO/CAN/WHAT/CONDITIONS)
-- [ ] WASM / Lisp execution
-- [ ] libp2p / DHT / Gossip
-- [ ] Replication + recovery demos
-- [ ] Studio / HTTP API / SSE
-- [ ] Publicación a GitHub del repo Core
+Los repos originales no se modifican como consecuencia de cambios en PrismaTEC-Core, salvo petición explícita.
 
 ---
 
-## 5. Fase 3 — Memory + CID (COMPLETADA — ver PHASE3_MEMORY_CID.md)
+## 4. Principios de integración de aplicaciones
 
-Resumen: working/episodic/semantic + `storage/cid` LocalStore + CLI memory.*
+La especificación normativa está en `docs/APPLICATION_INTEGRATION_CONTRACT.md`.
 
-### Histórico de especificación (referencia)
+- La aplicación conserva sus entidades, reglas, procesos e invariantes.
+- El adaptador traduce el dominio a contratos públicos del Core.
+- El Core proporciona primitivas universales; no absorbe el dominio.
+- El dominio no importa paquetes internos del Core.
+- Debe declararse si el Core se consume embebido, remoto o híbrido.
+- RootCID, NodeID, PeerID, OrganismID e ID de dominio son conceptos distintos.
+- Idempotencia, atomicidad, recuperación y autorización deben probarse, no suponerse.
+- Mind/Zyrion pueden razonar, pero no autorizan ni ejecutan por sí mismos.
 
-### Objetivo
+### Primera implementación de referencia
 
-```
-Organism
-  → Memory (working / episodic / semantic)
-  → CID de contenido cuando aplique
-  → Persist
-  → Restore
-```
+Smart-WMS (`danielitoCode/smart-wms`, rama `feat/wms-prismatec-genesis`) es la primera implementación a contrastar con el contrato. Sus patrones de CoreStore/organismos son referencia; sus reglas de receiving, picking e inventory ledger pertenecen al WMS.
 
-### Requisitos
-
-1. **No romper** la API pública de `Organism` / `Manager` / CLI existente.
-2. Ampliar `MemoryRef` (o tipo `Memory`) con:
-   - `Working map[string]string` (ya existe)
-   - `Episodic []Episode` (eventos con timestamp, tipo, payload/CID)
-   - `Semantic map[string]string` o refs a CID (hechos estables)
-3. Almacenamiento de bloques/contenido direccionable bajo `storage/` o `core` mínimo:
-   - `Put(content []byte) (cid string, error)`
-   - `Get(cid string) ([]byte, error)`
-4. RootCID: **puede** empezar a usar `github.com/ipfs/go-cid` + multihash, pero mantener compatibilidad o migración clara. Si se cambia el formato, documentarlo y tests de regresión.
-5. CLI mínima adicional (opcional pero útil):
-   - `prismatec organism memory set <id> <key> <value>`
-   - `prismatec organism memory get <id> <key>`
-   - o `inspect` ya muestra working keys
-6. Tests:
-   - mismo contenido → mismo CID
-   - PutMemory / episodic append → persist → reload
-   - organism restore conserva memoria
-7. Documentar en `docs/PHASE3_MEMORY_CID.md`
-
-### Qué reutilizar
-
-- AlsetOS `memoria` (simple JSON) — solo como idea
-- PrismaTec persistencia CID/bloques — como referencia de diseño
-- `Manager.PutMemory` ya existe — extender, no duplicar
-
-### Qué NO hacer en Fase 3
-
-- No integrar libp2p
-- No integrar Alset-JS todavía
-- No implementar Mind/Gen
-- No reescribir el modelo Organism desde cero
-- No añadir dependencias innecesarias
+La revisión previa detectó riesgos de atomicidad en receiving, errores ignorados en picking, idempotencia dependiente de claves estables y una frontera Core documentada de forma distinta a su composición embebida. Esos hallazgos deben revalidarse contra el HEAD actual antes de considerarlos resueltos o vigentes.
 
 ---
 
-## 6. Orden de fases restantes (obligatorio)
+## 5. Qué NO debe hacerse
 
-```
-3  Memory + CID
-4  Events + Pulse (bus interno unificado hacia fuera)
-5  AIP v1
-6  Alset-JS mínimo (Demo 1)
-7  Capabilities + Policy
-8  Execution (WASM / Lisp modules)
-9  Intelligence providers (interfaces)
-10 Network (interfaces + libp2p)
-11 Replication
-12 Failure / Recovery (Demo 3)
-13 Studio progresivo
-14 End-to-end demo
-15 Security hardening
-16 Documentation + investor package (solo con demos reales)
-```
+- No convertir PrismaTEC-Core en un monolito de aplicaciones verticales.
+- No trasladar inventario, recepción, picking, pacientes, cuentas o pedidos al núcleo.
+- No crear SDKs que expongan structs o paquetes internos inestables.
+- No prometer transacciones entre organismos, consenso, disponibilidad o RPO/RTO sin implementación y pruebas.
+- No equiparar RootCID con identidad de usuario, autoridad o versión de negocio.
+- No confundir réplica disponible con réplica autorizada para convertirse en primaria.
+- No asumir que AIP v1 ya cubre todas las garantías del contrato universal.
 
 ---
 
-## 7. Cómo trabajar sin romper nada
+## 6. Guía de continuidad
 
-1. **Leer** este HANDOFF + `DECISIONS.md` + la `PHASEx` de la fase anterior.
-2. **Correr** `go test ./...` antes de tocar código (baseline verde).
-3. Implementar en paquetes existentes o crear bajo la estructura ya definida (`storage/cid`, `core/memory`, etc.).
-4. **No** renombrar paquetes públicos (`core`, `organism`, `identity`) sin necesidad.
-5. Tras cada cambio: `go test ./...` + smoke CLI.
-6. Actualizar:
-   - `docs/PHASE{N}_*.md`
-   - este `docs/HANDOFF.md` (sección estado + fecha)
-   - `README.md` status
-7. Si fallas: STOP → DIAGNOSE → FIX → TEST. No apilar capas rotas.
-8. Preguntar siempre: ¿es Core, capability, adapter, application o demo? Si puede esperar → no.
-
-### Comandos de verificación baseline
-
-```bash
-cd /home/workdir/artifacts/PrismaTec-Core
-go test ./...
-PRISMATEC_DATA_DIR=/tmp/ptc-smoke go run ./cmd/prismatec organism create smoke-agent
-PRISMATEC_DATA_DIR=/tmp/ptc-smoke go run ./cmd/prismatec organism inspect smoke-agent
-```
+1. Leer este HANDOFF, `docs/DECISIONS.md`, `docs/STATUS.md` y `docs/APPLICATION_INTEGRATION_CONTRACT.md`.
+2. Verificar HEAD y ejecutar baseline de pruebas.
+3. Auditar Smart-WMS vigente y construir matriz requisito → código → prueba → estado.
+4. Resolver primero discrepancias entre contrato, implementación y documentación.
+5. Diseñar interfaces públicas mínimas solo después de comprobar qué abstracciones son realmente universales.
+6. Validar el contrato con una segunda aplicación de dominio distinto.
+7. Actualizar HANDOFF, STATUS, JOURNAL y documentos de arquitectura en cada cambio relevante.
 
 ---
 
-## 8. Decisiones técnicas ya tomadas (no revertir sin ADR)
+## 7. Decisión y estado de 2026-11-16
 
-| Tema | Decisión |
-|------|----------|
-| Lenguaje Core | Go |
-| NodeID | Ed25519, formato `node:` + base64url(pubkey) |
-| RootCID actual | `rootcid:` + hex(sha256(manifest JSON canónico)) |
-| Persistencia local | JSON files bajo DataDir |
-| Policy v0 | `map[string]bool` por capability name |
-| Package names | inglés (`organism`, no `organismo`) |
-| CLI name | `prismatec` |
-| Event bus | in-process, tipos string |
+Se creó el contrato universal de integración v0.1.0 en `docs/APPLICATION_INTEGRATION_CONTRACT.md` y se enlazó desde README y ARCHITECTURE.
 
----
+**Estado:** especificación arquitectónica propuesta; no equivale a SDK, API ni certificación de conformidad. No se ejecutaron pruebas Go ni se modificó lógica de runtime en esta actualización.
 
-## 9. Contacto con el manifiesto de producto
+**Siguiente paso:** auditar la rama actual de Smart-WMS y completar una matriz de conformidad con evidencia verificable. No comenzar implementando interfaces adicionales antes de esa auditoría.
 
-Posicionamiento técnico provisional:
-
-> PrismaTec Core is an infrastructure runtime for persistent, autonomous and distributed digital entities.
-
-No usar frases tipo “AGI OS”, “revolutionary AI”, “new internet” en docs técnicos.
-
-Mercados futuros (solo diseño, no implementación): agents, pharma, industrial, robotics, enterprise agent control plane, etc.
-
----
-
-## 10. Checklist para la siguiente IA al retomar
-
-- [ ] Leer `docs/HANDOFF.md` completo
-- [ ] Leer `docs/DECISIONS.md` y `docs/MIGRATION.md`
-- [ ] `go test ./...` verde
-- [ ] Identificar fase actual (si Fase 3 incompleta → terminarla)
-- [ ] Implementar solo el alcance de esa fase
-- [ ] Tests + CLI smoke
-- [ ] Escribir `docs/PHASE{N}_*.md`
-- [ ] Actualizar sección “Estado actual” de este HANDOFF
-- [ ] No avanzar dos fases en un solo salto sin verificación
-
----
-
-## 11. Archivos clave para no perder el hilo
-
-| Archivo | Por qué |
-|---------|---------|
-| `docs/HANDOFF.md` | Continuidad entre sesiones/IAs |
-| `docs/AUDIT.md` | Qué hay en los 3 repos origen |
-| `docs/ARCHITECTURE.md` | Mapa objetivo |
-| `docs/MIGRATION.md` | Orden de trabajo |
-| `docs/DECISIONS.md` | ADRs |
-| `docs/PHASE1_BOOT.md` | Qué se hizo en Fase 1 |
-| `docs/PHASE2_ORGANISM.md` | Qué se hizo en Fase 2 |
-| `core/organism/*.go` | Corazón del modelo actual |
-| `core/node.go` | Punto de entrada del runtime |
-| `cmd/prismatec/main.go` | CLI |
-
----
-
-**Fin del handoff.**  
-Core 0–15 estable. Siguiente: Phase 16 verticales (WorkOrder → puente AbacoPhy). Ver `docs/PHASE16_VERTICAL.md`.
+**Fin del handoff.**
