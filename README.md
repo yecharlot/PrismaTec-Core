@@ -53,6 +53,8 @@ go test ./tests/e2e/ -v
 **Security:** [docs/SECURITY.md](docs/SECURITY.md)  
 **Handoff for contributors/AI:** [docs/HANDOFF.md](docs/HANDOFF.md)
 
+**Application integration contract:** [docs/APPLICATION_INTEGRATION_CONTRACT.md](docs/APPLICATION_INTEGRATION_CONTRACT.md)
+
 ---
 
 ## Architecture (one glance)
@@ -89,8 +91,8 @@ IDENTITY + STATE + MEMORY + CAPABILITY + POLICY
 
 ## Related repositories (unchanged)
 
-- [AlsetOS](https://github.com/yecharlot/AlsetOS) — distributed execution heritage  
-- [Prismatec](https://github.com/yecharlot/Prismatec) — intelligence / edge heritage  
-- [Alset-JS-Runtime](https://github.com/yecharlot/Alset-JS-Runtime) — interaction / pulse UI heritage  
+- [AlsetOS](https://github.com/yecharlot/AlsetOS) — distributed execution heritage
+- [Prismatec](https://github.com/yecharlot/Prismatec) — intelligence / edge heritage
+- [Alset-JS-Runtime](https://github.com/yecharlot/Alset-JS-Runtime) — interaction / pulse UI heritage
 
 PrismaTec Core is an **evolution**, not a destructive merge of those repos.
