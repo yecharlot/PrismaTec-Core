@@ -2,7 +2,7 @@
 
 # STATUS — Qué tenemos vs propósito final
 
-**Actualizado:** 2026-09-27 (Phase 16 vertical WorkOrder documentado; siguiente = adaptadores de producto)
+**Actualizado:** 2026-11-16 (contrato universal de integración v0.1.0 documentado; conformidad de aplicaciones pendiente)
 
 ## Propósito final (manifiesto)
 
@@ -23,7 +23,7 @@ Identity · State · Memory · Capability · Policy · Execution · Network · P
 ## Completado (Fases 0–4)
 
 | Fase | Entregable | Estado |
-|------|------------|--------|
+|---|---|---|
 | 0 | Auditoría 3 repos + mapas | ✅ |
 | 1 | Node, Identity (NodeID), EventBus, Registry, CLI node | ✅ |
 | 2 | Organism model, lifecycle, RootCID, persist, CLI organism | ✅ |
@@ -34,13 +34,13 @@ Identity · State · Memory · Capability · Policy · Execution · Network · P
 
 ### Capacidades reales hoy
 
-- Nodo con **NodeID** Ed25519 persistente  
-- **Organismos** create/start/stop/inspect/list con **RootCID** determinista  
-- **Policy** mínima (allow/deny por capability)  
-- **Memoria** tipada + **bloques** `cid1:` e IPFS CIDv1  
-- **Eventos** internos + **Pulses** dirigidos a target (organismo/nodo)  
-- CLI `prismatec` operativa  
-- Tests unitarios verdes  
+- Nodo con **NodeID** Ed25519 persistente
+- **Organismos** create/start/stop/inspect/list con **RootCID** determinista
+- **Policy** mínima (allow/deny por capability)
+- **Memoria** tipada + **bloques** `cid1:` e IPFS CIDv1
+- **Eventos** internos + **Pulses** dirigidos a target (organismo/nodo)
+- CLI `prismatec` operativa
+- Tests unitarios verdes (según evidencia documentada; volver a ejecutar antes de certificar un cambio)
 
 ### Paths importantes
 
@@ -54,7 +54,7 @@ module: github.com/yecharlot/PrismaTec-Core  (go 1.25.0)
 ## Falta para el propósito / MVP
 
 | Fase | Qué falta | Por qué importa |
-|------|-----------|-----------------|
+|---|---|---|
 | **5 AIP v1** | Contrato versionado + transporte (SSE/WS/HTTP) | Sin esto el browser no habla con el Core |
 | **6 Alset-JS mínimo** | Registry + Pulse client + panel real | Demo 1 (UI con datos del Core) |
 | **7 Policy** | WHO/CAN/WHAT/CONDITIONS | Enterprise / compliance |
@@ -71,36 +71,36 @@ module: github.com/yecharlot/PrismaTec-Core  (go 1.25.0)
 ```
 [x] Core organism + memory + pulse + AIP + Studio
 [x] Multi-nodo TCP / libp2p + recover E2E
-[x] WorkOrder reference (`prismatec workorder run`)
-[ ] Vertical real (p.ej. puente AbacoPhy ↔ organismo)
-[ ] Panel Studio específico del vertical con datos AIP
+[x] WorkOrder reference (documentado en PHASE16_VERTICAL.md)
+[ ] Aplicación vertical externa con matriz de conformidad del contrato
+[ ] SDK/adaptador público estabilizado
+[ ] Prueba de conformidad reutilizable para una segunda aplicación
 ```
 
-**Recomendación:** Phase 16+ — adaptadores de aplicación **fuera** del núcleo; ver `docs/PHASE16_VERTICAL.md`.
+**Contrato de integración:** `docs/APPLICATION_INTEGRATION_CONTRACT.md` (v0.1.0, especificación propuesta). Su existencia no implica que todas sus garantías estén implementadas.
 
 ---
 
 ## Cómo continuar (cualquier IA)
 
-1. Leer **`docs/HANDOFF.md`** y este **`docs/STATUS.md`**  
-2. `cd PrismaTec-Core && go test ./...`  
-3. Si `go get` falla: `GOPROXY=https://proxy.golang.org,direct`  
-4. Implementar **solo la fase siguiente** en `MIGRATION.md`  
-5. Documentar en `docs/PHASE{N}_*.md` + actualizar HANDOFF + STATUS  
-6. Ciclo: IMPLEMENT → BUILD → TEST → RUN → VERIFY → DOCUMENT  
+1. Leer **`docs/HANDOFF.md`** y este **`docs/STATUS.md`**
+2. Ejecutar `go test ./...` antes de modificar código
+3. Si `go get` falla: `GOPROXY=https://proxy.golang.org,direct`
+4. Implementar solo la fase siguiente en `MIGRATION.md`
+5. Documentar cada fase y actualizar HANDOFF + STATUS + JOURNAL
+6. Ciclo: IMPLEMENT → BUILD → TEST → RUN → VERIFY → DOCUMENT
 
 ### Reglas que no se negocian
 
-- Core ≠ Applications (Mind/Gen fuera del core obligatorio)  
-- RootCID / NodeID / PeerID separados  
-- No demo falsa (UI debe leer datos del Core)  
-- No saltar a red/Studio antes de AIP  
+- Core ≠ Applications (Mind/Gen fuera del core obligatorio)
+- RootCID / NodeID / PeerID separados
+- No demo falsa (UI debe leer datos del Core)
+- No saltar a red/Studio antes de AIP
 
 ---
 
-## Pensamiento futuro (corto)
+## Pensamiento futuro
 
-- Pulse log debería vivir en el proceso `node start` + AIP, no en CLI one-shot.  
-- RootCID puede migrar a CIDv1 de manifiesto cuando se quiera unificar con bloques IPFS.  
-- Policy engine debe crecer sin romper `map[string]bool` actual (capa encima).  
-- libp2p debe entrar como **adapter**, no como dependencia del tipo Organism.
+- El contrato universal debe validarse primero contra Smart-WMS, sin mover reglas WMS al Core.
+- La siguiente prueba de generalidad debe ser una segunda aplicación con dominio distinto.
+- Solo después de verificar el patrón deben estabilizarse SDKs y contratos de red adicionales.
