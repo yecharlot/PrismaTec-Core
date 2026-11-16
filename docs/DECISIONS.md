@@ -44,9 +44,9 @@ libp2p, Cloudflare, OpenAI, wazero, etc. son implementaciones.
 ## ADR-005: Capability ≠ Policy
 
 **Estado:** Aceptado  
-**Decisión:**  
-- Capability = “puedo hacer X”  
-- Policy = “quién puede, sobre qué, bajo qué condiciones”  
+**Decisión:**
+- Capability = “puedo hacer X”
+- Policy = “quién puede, sobre qué, bajo qué condiciones”
 La autorización se evalúa en runtime.  
 **Consecuencia:** Prepara el sistema para escenarios enterprise reales sin implementar IAM completo ahora.
 
@@ -94,3 +94,25 @@ No se implementa un IAM enterprise completo todavía.
 **Estado:** Aceptado  
 **Decisión:** Todo organismo debe poder responder: Who am I? Where am I? What am I doing? What did I do? What am I allowed to do? What happened? Who authorized it?  
 Esto se refleja en events, provenance, pulse y UI.
+
+---
+
+## ADR-011: Contrato universal de integración de aplicaciones
+
+**Estado:** Aceptado como dirección arquitectónica; especificación v0.1.0 pendiente de validación práctica.
+
+**Contexto:** Smart-WMS demuestra una forma de utilizar PrismaTEC-Core como infraestructura de organismos, persistencia e historial sin trasladar las reglas de inventario al núcleo. Necesitamos que otras aplicaciones de dominios distintos puedan repetir el patrón sin copiar el WMS ni depender de paquetes internos del Core.
+
+**Decisión:**
+- La aplicación es dueña de sus entidades, vocabulario, reglas e invariantes.
+- Un adaptador traduce esas entidades y operaciones a contratos públicos de PrismaTEC-Core.
+- El Core ofrece primitivas universales de identidad, organismo, memoria, episodios, capacidades, políticas, procedencia, ejecución y distribución, según su implementación real.
+- La aplicación no importa paquetes internos del Core.
+- La modalidad embebida, remota o híbrida debe declararse explícitamente.
+- Idempotencia, atomicidad, autoridad, autorización y recuperación requieren contratos y pruebas específicas.
+- Mind/Zyrion no sustituyen a Policy ni adquieren autoridad de ejecución.
+- Smart-WMS es la primera implementación de referencia; una segunda aplicación debe validar la generalidad del contrato.
+
+**Consecuencia:** PrismaTEC-Core se mantiene independiente de los dominios verticales y puede evolucionar como infraestructura común. La especificación no implica que todas sus garantías estén implementadas ni que exista ya un SDK estable.
+
+**Documento normativo:** `docs/APPLICATION_INTEGRATION_CONTRACT.md`.
