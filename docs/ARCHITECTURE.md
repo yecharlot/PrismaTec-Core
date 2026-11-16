@@ -122,7 +122,7 @@ type Organism struct {
 
 **Identidades separadas (inviolable):**
 - `RootCID` → identidad del organismo / contenido
-- `NodeID`  → identidad persistente del nodo que lo ejecuta
+- `NodeID`  → identidad persistente del nodo ejecutor
 - `PeerID`  → identidad de transporte (libp2p)
 
 Un organismo puede moverse de Node A → Node B manteniendo RootCID.
@@ -222,4 +222,19 @@ Organism.SendMessage(...)     →  no sabe si es libp2p / WebSocket / HTTP
 Organism.Execute(...)         →  no sabe si es WASM / Lisp / External model
 ```
 
-El Core habla en primitives. Los adapters implementan el how.
+---
+
+## 10. Contrato universal de integración de aplicaciones
+
+La frontera entre una aplicación y el Core queda especificada en
+[`APPLICATION_INTEGRATION_CONTRACT.md`](APPLICATION_INTEGRATION_CONTRACT.md).
+
+El contrato establece que:
+
+- la aplicación conserva sus entidades, reglas e invariantes;
+- el adaptador traduce el dominio a las primitivas públicas del Core;
+- el Core administra identidad técnica, organismos, memoria, episodios, políticas, procedencia y distribución según las capacidades realmente implementadas;
+- idempotencia, atomicidad, recuperación y autorización deben probarse, no suponerse;
+- Mind/Zyrion aportan razonamiento, pero no autoridad de ejecución.
+
+La especificación v0.1.0 es normativa a nivel arquitectónico, pero no representa todavía un SDK ni una API completa implementada. Cada integración debe registrar su matriz de conformidad y evidencias.
