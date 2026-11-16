@@ -3,7 +3,6 @@
 ## 2026-09-26 — Fases 0–4 + política de docs
 
 ### Qué se hizo
-
 - Auditoría de AlsetOS, PrismaTec, Alset-JS-Runtime
 - Fase 1 Core Boot (identity, node, events, registry, CLI)
 - Fase 2 Organism (modelo, lifecycle, RootCID, persistencia, CLI)
@@ -14,30 +13,25 @@
 - Documentación: HANDOFF, STATUS, PHASE1–4, política de documentación continua
 
 ### Por qué
-
 Cumplir el manifiesto: primitives primero, demo real después, continuidad entre IAs.
 
 ### Pensamiento futuro
-
 - AIP debe servir desde `node start` (proceso largo), no desde CLI efímera
 - Pulse log RAM es suficiente hasta AIP; persistir solo si hace falta
 - No meter libp2p hasta tener interfaces Network limpias
 
 ### Guía de acción siguiente
-
 1. `go test ./...` con `GOPROXY=https://proxy.golang.org,direct` si hace falta
 2. Fase 5: AIP v1 mínimo (discovery, organism snapshot, pulse stream)
 3. Actualizar PHASE5 + HANDOFF + STATUS + esta JOURNAL
 4. Luego Fase 6 Alset-JS mínimo → Demo 1
 
 ### Verificación
-
 ```bash
 cd /home/workdir/artifacts/PrismaTec-Core
 go test ./...
 # ok core, organism, pulse, storage/cid, ...
 ```
-
 
 ## 2026-09-26 — Fase 5 AIP v1 + ruta GitHub
 
@@ -55,147 +49,75 @@ Cerrar el contrato Core↔clientes antes de UI.
 ### Pensamiento futuro
 Fase 6 = panel mínimo en JS (puede vivir en demos/ o extraer de Alset-JS-Runtime solo Registry+EventSource).
 
-### Guía de acción
-1. Publicar repo en GitHub siguiendo docs/GITHUB.md
-2. Fase 6 Demo 1
-3. GOPROXY=https://proxy.golang.org,direct y GOTOOLCHAIN=go1.25.0
-
-
 ## 2026-09-26 — GitHub publish + Fase 6 Demo 1
-
-### Qué se hizo
 - Repo público: https://github.com/yecharlot/PrismaTec-Core
-- demos/aip-panel + served at /demo/
+- `demos/aip-panel` + served at `/demo/`
 - Documentación PHASE6
 
-### Por qué
-Demo 1 del manifiesto + visibilidad del código en GitHub.
-
-### Seguridad
-El token de GitHub usado para el push quedó expuesto en el chat: **revocar y generar uno nuevo** en GitHub → Settings → Developer settings → Tokens.
-
-### Guía de acción
-1. Revocar token expuesto
-2. Abrir demo en browser con node start
-3. Fase 7 o 10 según prioridad
-
-
 ## 2026-09-26 — Fase 7 Policy
-
-### Qué se hizo
-- core/policy Engine (allow/deny, priority, wildcards, conditions)
+- `core/policy` Engine (allow/deny, priority, wildcards, conditions)
 - Integración organism Manager + AIP policy.check
 - Tests + docs PHASE7
 
-### Por qué
-Authorization real antes de execution/network.
-
-### Guía de acción
-Push a GitHub; siguiente Fase 8 o 10.
-
-
 ## 2026-09-26 — Fases 8–12 batch
-
-### Qué se hizo
-- runtime/execution + wasm (wazero) + inference providers
-- network LocalTransport fabric
-- core/replication Replicate + RecoverIfPrimaryDown
+- `runtime/execution` + `wasm` (wazero) + inference providers
+- `network` LocalTransport fabric
+- `core/replication` Replicate + RecoverIfPrimaryDown
 - AIP execute/infer
 - docs PHASES_8_TO_12.md
 
-### Por qué
-Cerrar el camino técnico a Demos 2/3 sin esperar libp2p completo.
-
-### Guía de acción
-Push GitHub; opcional CLI multi-node; Phase 13 Studio.
-
-
 ## 2026-09-26 — Fase 13 Control Studio
-
-### Qué se hizo
-- demos/studio Control Studio UI
+- `demos/studio` Control Studio UI
 - Routes /studio/ and / still → studio
 - docs PHASE13
 
-### Por qué
-Plano de control observable sobre Core real.
-
-### Guía de acción
-Push GitHub; node start → /studio/
-
-
 ## 2026-09-26 — Fase 14 E2E
-
-### Qué se hizo
-- tests/e2e TestE2E_ManifestChecklist (12 steps) + AIP HTTP
-- prismatec demo e2e
+- `tests/e2e` TestE2E_ManifestChecklist (12 steps) + AIP HTTP
+- `prismatec demo e2e`
 - docs PHASE14
 
-### Por qué
-Cerrar el criterio de éxito automatizado.
-
-### Guía de acción
-go test ./tests/e2e/ -v ; push GitHub; Phase 15 security.
-
-
 ## 2026-09-26 — Fase 15 Security + USAGE
-
-### Qué se hizo
-- core/audit, core/security
+- `core/audit`, `core/security`
 - AIP token + validation + audit API
 - docs/USAGE.md, SECURITY.md, PHASE15, README
 
-### Por qué
-Usabilidad y hardening mínimo antes de package comercial.
-
-### Guía de acción
-Leer docs/USAGE.md; Phase 16 opcional (investor deck).
-
-
 ## 2026-09-26 — Cierre manifiesto: multi-nodo TCP
-
-### Qué se hizo
-- network.TCPTransport multi-proceso
+- `network.TCPTransport` multi-proceso
 - PeerID distinto de NodeID
 - Node.ReplicateOrganism / RecoverOrganism + Adopt
 - Provenance en replicate/recover
 - TestE2E_MultiNodeTCP (Demo 2+3)
 - CLI/AIP + docs MANIFESTO_COMPLIANCE + USAGE multi-node
 
-### Por qué
-Eliminar cabos sueltos: el manifiesto exige plataforma distribuida demostrable, no solo fabric in-process.
-
-### Guía de acción
-go test ./tests/e2e/ -v ; leer docs/MANIFESTO_COMPLIANCE.md
-
-
 ## 2026-09-26 — libp2p Transport adapter
-
-### Qué se hizo
-- network.LibP2PTransport (Noise, /prismatec/aip/1.0.0)
+- `network.LibP2PTransport` (Noise, /prismatec/aip/1.0.0)
 - Node buildTransport tcp|libp2p
 - Tests LibP2P + docs NETWORK_LIBP2P + INDUSTRIAL_VISION
 
-### Por qué
-Descentralización real detrás de la misma interfaz; narrativa industrial honesta.
-
-### Guía
-PRISMATEC_TRANSPORT=libp2p; go test ./network/ -run LibP2P -v
-
 ## 2026-09-26 — Evidence pack for reviewers
-Ran go test ./... green at 976201b; wrote docs/EVIDENCE_FOR_REVIEWERS.md for ChatGPT/auditors.
-
+- Ran `go test ./...` green at `976201b`
+- Wrote `docs/EVIDENCE_FOR_REVIEWERS.md` for reviewers/auditors
 
 ## 2026-09-27 — Phase 16 vertical baseline
-
-### Qué se hizo
-- Documentó PHASE16_VERTICAL.md (WorkOrder como app de referencia)
+- Documenté `PHASE16_VERTICAL.md` (WorkOrder como app de referencia)
 - Alineó STATUS/HANDOFF: Core 0–15 hecho; gap = verticales de producto
-- Verificación: workorder test + CLI ya existen
+- Verificación: WorkOrder test + CLI documentados
+
+## 2026-11-16 — Contrato universal de integración v0.1.0
+
+### Qué hice
+- Creé `docs/APPLICATION_INTEGRATION_CONTRACT.md`.
+- Definí la separación normativa Aplicación → Adaptador → PrismaTEC-Core → Proveedores.
+- Establecí contratos para organismos de dominio, identidad, relaciones, episodios, operaciones, idempotencia, atomicidad, concurrencia, autorización, replicación, Mind/Zyrion, errores, versionado y pruebas de conformidad.
+- Incorporé Smart-WMS como primera implementación de referencia y documenté las lecciones de receiving, picking, ledger y frontera Core.
 
 ### Por qué
-El Core ya no es el cuello de botella; el mercado necesita apps reales sobre AIP.
+Necesito que otras aplicaciones puedan reutilizar las primitivas de PrismaTEC-Core sin copiar la arquitectura del WMS ni trasladar reglas verticales al núcleo.
 
-### Guía de acción
-go test ./runtime/mind/ -run WorkOrder -v
-go run ./cmd/prismatec workorder run
+### Estado y límites
+- La especificación es normativa a nivel arquitectónico, pero todavía no es un SDK ni una API implementada.
+- No ejecuté pruebas Go ni certifiqué el estado actual de Smart-WMS en esta actualización.
+- La conformidad de Smart-WMS debe verificarse contra el código vigente antes de declarar que cumple el contrato.
+
+### Siguiente paso
+Auditar la rama vigente de Smart-WMS y construir una matriz requisito → código → prueba → estado, antes de diseñar interfaces públicas adicionales.
